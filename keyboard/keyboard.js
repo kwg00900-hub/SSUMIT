@@ -1,6 +1,3 @@
-// ============================================
-// 게임 설정 (공통)
-// ============================================
 const LANE_COUNT = 8;
 let LANE_WIDTH = 80;
 let TRACK_X_OFFSET = -100; // 트랙을 중앙에 배치하기 위한 좌측 오프셋
@@ -19,8 +16,8 @@ let bgm;
 let isGameStarted = false; // 게임 시작 여부
 
 // [신규 수정] 시간 보정 및 채보 테스트용 변수
-let jumpStartTime = 0;       // 점프한 시점의 실제 컴퓨터 시간 기록
-let targetStartTimeSec = 0;  // 시작할 음악 시간(초) 저장
+let jumpStartTime = 0;        // 점프한 시점의 실제 컴퓨터 시간 기록
+let targetStartTimeSec = 0;   // 시작할 음악 시간(초) 저장
 
 //==========================================BPM
 let gameBPM = 126;
@@ -43,41 +40,41 @@ let comboScale = 1.0; // 콤보 달성 시 커지는 애니메이션용
 let video; // 카메라 영상을 담을 변수
 
 // BPM 설정
-function setGameBPM(bpm) {
+function keyboardsetGameBPM(bpm) {
   gameBPM = bpm;
 }
 
 // 비트를 시간(초)으로 변환 
-function beatToTime(beat) {
+function keyboardbeatToTime(beat) {
   return (beat * 60) / gameBPM;
 }
 
 // ============================================
 // 초기화 및 채보 제작
 // ============================================
-function preload() {
+function keyboardpreload() {
   myFont = loadFont('Paperlogy-7Bold.ttf');
   bgm = loadSound('126.mp3');
 }
 
-function setup() {
+function keyboardsetup() {
   createCanvas(windowWidth, windowHeight);
-  updateGameScale();
+  keyboardupdateGameScale();
   textFont(myFont);
   
-  createChart();
+  keyboardcreateChart();
 
   // 카메라 초기화 및 캔버스 뒤 DOM 숨김 처리
   video = createCapture(VIDEO);
   video.hide(); 
 }
 
-function windowResized() {
+function keyboardwindowResized() {
   resizeCanvas(windowWidth, windowHeight);
-  updateGameScale();
+  keyboardupdateGameScale();
 }
 
-function updateGameScale() {
+function keyboardupdateGameScale() {
   let trackWidth = min(windowWidth * 0.75, 800); 
   if (trackWidth < 450) trackWidth = windowWidth; 
   
@@ -92,7 +89,7 @@ function updateGameScale() {
   SCROLL_SPEED = windowHeight * 0.6; // 초당 이동 픽셀 수
 }
 
-function mousePressed() {
+function keyboardmousePressed() {
   if (!isGameStarted) {
     userStartAudio(); // 브라우저 사운드 락 해제
     isGameStarted = true;
@@ -100,16 +97,16 @@ function mousePressed() {
     // ============================================
     // [채보 테스트용] 원하는 마디부터 시작하기
     // ============================================
-    let startMeasure = 40; // 시작하고 싶은 마디 입력 (40마디)
-    let startBeat = startMeasure * 4.0; // 마디를 박자로 변환 (160.0)
-    targetStartTimeSec = beatToTime(startBeat); // 박자를 시간(초)으로 변환 후 전역변수에 저장
+    //let startMeasure = 40; // 시작하고 싶은 마디 입력 (40마디)
+    //let startBeat = startMeasure * 4.0; // 마디를 박자로 변환 (160.0)
+    //targetStartTimeSec = keyboardbeatToTime(startBeat); // 박자를 시간(초)으로 변환 후 전역변수에 저장
     
     // 시작 지점 이전의 노트들은 Miss 처리되지 않도록 미리 비활성화
-    for (let note of notes) {
-      if (note.time < targetStartTimeSec * 1000) {
-        note.active = false;
-      }
-    }
+    //for (let note of notes) {
+    //  if (note.time < targetStartTimeSec * 1000) {
+    //    note.active = false;
+    //  }
+    //}
     
     // [버그 수정] play와 jump를 따로 쓰지 않고 오디오 로딩 씹힘을 방지하기 위해 play 인자에서 시작 시간 지정
     // 인자 순서: play(지연시간, 재생속도, 볼륨, 시작시간_초)
@@ -128,69 +125,69 @@ function mousePressed() {
 // ============================================
 // [박자 직관화] 1박자(4분음표) = 1.0 기준 채보 시스템
 // ============================================
-function createChart() {
-  setGameBPM(126); // 실제 음원의 BPM 설정
+function keyboardcreateChart() {
+  keyboardsetGameBPM(126); // 실제 음원의 BPM 설정
   
-  n(5, 4.0);
-  n(5, 5.0);
-  n(5, 6.0);
-  n(6, 6.5);
-  n(5, 7.0);
-  h(4, 7.5, 0.5);
-  h(4, 8.5, 0.5);
-  h(4, 9.5, 0.5);
-  n(6, 10.5);
-  n(5, 12.0);
-  n(5, 13.0);
-  n(5, 14.0);
-  n(6, 14.5);
-  n(5, 15.0);
-  h(4, 15.5, 1.5);
-  h(3, 17.0, 1.0);
-  h(2, 18.0, 1.0);
-  h(1, 19.0, 1.0);
-  h(2, 20.0, 2.0);
-  n(1, 23.0);
-  n(2, 24.0);
-  n(3, 24.5);
-  n(4, 25.0);
-  n(1, 25.5);
-  h(2, 28.0, 1.0);
-  h(3, 29.0, 1.0);
-  h(4, 30.0, 1.0);
-  h(5, 31.0, 1.0);
-  h(6, 32.0, 2.0);
+  keyboardn(5, 4.0);
+  keyboardn(5, 5.0);
+  keyboardn(5, 6.0);
+  keyboardn(6, 6.5);
+  keyboardn(5, 7.0);
+  keyboardh(4, 7.5, 0.5);
+  keyboardh(4, 8.5, 0.5);
+  keyboardh(4, 9.5, 0.5);
+  keyboardn(6, 10.5);
+  keyboardn(5, 12.0);
+  keyboardn(5, 13.0);
+  keyboardn(5, 14.0);
+  keyboardn(6, 14.5);
+  keyboardn(5, 15.0);
+  keyboardh(4, 15.5, 1.5);
+  keyboardh(3, 17.0, 1.0);
+  keyboardh(2, 18.0, 1.0);
+  keyboardh(1, 19.0, 1.0);
+  keyboardh(2, 20.0, 2.0);
+  keyboardn(1, 23.0);
+  keyboardn(2, 24.0);
+  keyboardn(3, 24.5);
+  keyboardn(4, 25.0);
+  keyboardn(1, 25.5);
+  keyboardh(2, 28.0, 1.0);
+  keyboardh(3, 29.0, 1.0);
+  keyboardh(4, 30.0, 1.0);
+  keyboardh(5, 31.0, 1.0);
+  keyboardh(6, 32.0, 2.0);
   
   // 41마디 이후 채보 영역
-  n(2, 166.0);
-  n(4, 166.5);
-  n(5, 167.0);
-  n(6, 167.5);
-  n(5, 168.5);
-  n(4, 169.5);
-  n(3, 170.0);
-  n(4, 170.5);
-  n(4, 174.0);
-  n(4, 174.5);
-  n(4, 175.0);
-  n(4, 175.5);
-  n(4, 176.5);
-  n(5, 177.5);
-  n(4, 178.0);
-  n(2, 178.5);
-  n(2, 181.0);
-  n(3, 181.5);
-  n(4, 182.0);
-  n(7, 183.0);
-  n(7, 183.5);
-  n(6, 184.5);
+  keyboardn(2, 166.0);
+  keyboardn(4, 166.5);
+  keyboardn(5, 167.0);
+  keyboardn(6, 167.5);
+  keyboardn(5, 168.5);
+  keyboardn(4, 169.5);
+  keyboardn(3, 170.0);
+  keyboardn(4, 170.5);
+  keyboardn(4, 174.0);
+  keyboardn(4, 174.5);
+  keyboardn(4, 175.0);
+  keyboardn(4, 175.5);
+  keyboardn(4, 176.5);
+  keyboardn(5, 177.5);
+  keyboardn(4, 178.0);
+  keyboardn(2, 178.5);
+  keyboardn(2, 181.0);
+  keyboardn(3, 181.5);
+  keyboardn(4, 182.0);
+  keyboardn(7, 183.0);
+  keyboardn(7, 183.5);
+  keyboardn(6, 184.5);
 }
 
 // 단노트 생성 함수 (1박자 = 1.0 기준)
-function n(lane, beat) {
+function keyboardn(lane, beat) {
   notes.push({
     type: 'short',
-    time: beatToTime(beat) * 1000, // 박자를 밀리초(ms) 단위로 변환
+    time: keyboardbeatToTime(beat) * 1000, // 박자를 밀리초(ms) 단위로 변환
     lane: lane,
     active: true,
     missed: false
@@ -198,12 +195,12 @@ function n(lane, beat) {
 }
 
 // 롱노트 생성 함수 (시작 박자 위치, 지속될 박자 길이 입력)
-function h(lane, startBeat, lengthBeat) {
+function keyboardh(lane, startBeat, lengthBeat) {
   let endBeat = startBeat + lengthBeat;
   notes.push({
     type: 'hold',
-    time: beatToTime(startBeat) * 1000,
-    endTime: beatToTime(endBeat) * 1000,
+    time: keyboardbeatToTime(startBeat) * 1000,
+    endTime: keyboardbeatToTime(endBeat) * 1000,
     lane: lane,
     active: true,
     missed: false,
@@ -215,7 +212,7 @@ function h(lane, startBeat, lengthBeat) {
 // ============================================
 // 게임 루프 및 렌더링
 // ============================================
-function draw() {
+function keyboarddraw() {
   background(20);
   
   if (!isGameStarted) {
@@ -243,32 +240,32 @@ function draw() {
   // ============================================
   
   // 1. 사이드 배경 UI 렌더링
-  drawCustomLeftUI();  
-  drawCustomRightUI(); 
+  keyboarddrawCustomLeftUI();  
+  keyboarddrawCustomRightUI(); 
   
   // 2. 게임 플레이 영역 배경 (마디선 및 레인 격자)
-  drawBeatLines();
-  drawLanes();
+  keyboarddrawBeatLines();
+  keyboarddrawLanes();
   
   // 3. 게임 노트 렌더링
-  drawNotes();
+  keyboarddrawNotes();
   
   // 4. 피아노 건반 및 키 입력 이펙트
-  drawWhiteKeys();       
-  drawKeyPressEffects(); 
-  drawBlackKeys();       
+  keyboarddrawWhiteKeys();       
+  keyboarddrawKeyPressEffects(); 
+  keyboarddrawBlackKeys();       
   
   // 5. 판정선 및 상위 이펙트 시스템
-  drawJudgmentLine();
-  checkMissedNotes();
-  drawHitEffects();      
-  drawInfo();
+  keyboarddrawJudgmentLine();
+  keyboardcheckMissedNotes();
+  keyboarddrawHitEffects();      
+  keyboarddrawInfo();
 }
 
 // ============================================
 // 화려하게 꾸민 좌측 UI (Score & Combo 블록)
 // ============================================
-function drawCustomLeftUI() {
+function keyboarddrawCustomLeftUI() {
   let uiWidth = TRACK_X_OFFSET - 10;
   if (uiWidth <= 0) return;
 
@@ -278,7 +275,7 @@ function drawCustomLeftUI() {
   rect(0, 0, uiWidth, height);
   
   stroke(0, 230, 255, 40);
-  weight = 2;
+  let weight = 2;
   strokeWeight(2);
   line(uiWidth, 0, uiWidth, height);
 
@@ -327,7 +324,7 @@ function drawCustomLeftUI() {
 // ============================================
 // 우측 UI (카메라 피드 및 정보창)
 // ============================================
-function drawCustomRightUI() {
+function keyboarddrawCustomRightUI() {
   let trackRightEdge = TRACK_X_OFFSET + LANE_WIDTH * LANE_COUNT;
   let uiWidth = width - trackRightEdge - 10;
   if (uiWidth <= 0) return;
@@ -392,7 +389,7 @@ function drawCustomRightUI() {
   text(`SONG  : Neon Beats (126)`, startX, infoY + 50);
 }
 
-function drawBeatLines() {
+function keyboarddrawBeatLines() {
   stroke(100, 100, 150, 100);
   strokeWeight(2);
   
@@ -404,7 +401,7 @@ function drawBeatLines() {
   
   for (let i = startMeasure; i < startMeasure + 15; i++) {
     let beatTime = i * beatDuration * 1000;
-    let y = calcNoteY(beatTime);
+    let y = keyboardcalcNoteY(beatTime);
     
     if (y > -50 && y < judgeLine + 100) {
       if (i % 4 === 0) {
@@ -419,7 +416,7 @@ function drawBeatLines() {
   }
 }
 
-function drawLanes() {
+function keyboarddrawLanes() {
   stroke(80);
   strokeWeight(2);
   for (let i = 0; i <= LANE_COUNT; i++) {
@@ -428,7 +425,7 @@ function drawLanes() {
   }
 }
 
-function drawJudgmentLine() {
+function keyboarddrawJudgmentLine() {
   let trackWidth = LANE_WIDTH * LANE_COUNT;
   stroke(255, 50, 50);
   strokeWeight(4);
@@ -440,19 +437,19 @@ function drawJudgmentLine() {
 }
 
 // [싱크 수정] 오디오 오프셋을 반영하여 스크롤 위치 보정
-function calcNoteY(noteTime) {
+function keyboardcalcNoteY(noteTime) {
   let timeDiff = noteTime - (currentTime + AUDIO_OFFSET);
   return judgeLine - (timeDiff / 1000) * SCROLL_SPEED;
 }
 
-function drawNotes() {
+function keyboarddrawNotes() {
   for (let note of notes) {
     if (!note.active) continue;
     
     let x = TRACK_X_OFFSET + note.lane * LANE_WIDTH + (LANE_WIDTH - NOTE_WIDTH) / 2;
     
     if (note.type === 'short') {
-      let y = calcNoteY(note.time);
+      let y = keyboardcalcNoteY(note.time);
       if (y < -50 || y > height + 50) continue;
       
       fill(0, 0, 0, 100);
@@ -465,8 +462,8 @@ function drawNotes() {
       rect(x, y, NOTE_WIDTH, NOTE_HEIGHT, 3);
     } 
     else if (note.type === 'hold') {
-      let yStart = calcNoteY(note.time);
-      let yEnd = calcNoteY(note.endTime);
+      let yStart = keyboardcalcNoteY(note.time);
+      let yEnd = keyboardcalcNoteY(note.endTime);
       
       if (yStart < -50 && yEnd < -50) continue;
       if (yEnd > height + 50 && yStart > height + 50) continue;
@@ -495,19 +492,19 @@ function drawNotes() {
   }
 }
 
-function checkMissedNotes() {
+function keyboardcheckMissedNotes() {
   for (let note of notes) {
     if (note.active && !note.missed) {
       
       if (note.type === 'short') {
-        let noteY = calcNoteY(note.time);
+        let noteY = keyboardcalcNoteY(note.time);
         if (noteY > judgeLine + 80) {  
-          triggerMiss(note, 'MISS (OVER)');
+          keyboardtriggerMiss(note, 'MISS (OVER)');
         }
       } else if (note.type === 'hold') {
-        let noteY = calcNoteY(note.time);
+        let noteY = keyboardcalcNoteY(note.time);
         if (!note.headHit && noteY > judgeLine + 80) {
-          triggerMiss(note, 'MISS (OVER)');
+          keyboardtriggerMiss(note, 'MISS (OVER)');
         }
         // [싱크 수정] 롱노트 처리 타임라인 보정
         else if (note.holding && (currentTime + AUDIO_OFFSET) >= note.endTime) {
@@ -522,8 +519,8 @@ function checkMissedNotes() {
 
           lastJudgment = {
             text: 'PERFECT',
-            note: getNoteName(note.lane),
-            key: getKeyLabel(note.lane),
+            note: keyboardgetNoteName(note.lane),
+            key: keyboardgetKeyLabel(note.lane),
             timing: 'HOLD CLEAR',
             startScale: 1.2
           };
@@ -540,7 +537,7 @@ function checkMissedNotes() {
   }
 }
 
-function triggerMiss(note, reason) {
+function keyboardtriggerMiss(note, reason) {
   note.active = false;
   note.missed = true;
   note.holding = false;
@@ -549,15 +546,15 @@ function triggerMiss(note, reason) {
   
   lastJudgment = {
     text: 'MISS',
-    note: getNoteName(note.lane),
-    key: getKeyLabel(note.lane),
+    note: keyboardgetNoteName(note.lane),
+    key: keyboardgetKeyLabel(note.lane),
     timing: reason,
     startScale: 1.4 
   };
   judgmentTime = millis();
 }
 
-function drawKeyPressEffects() {
+function keyboarddrawKeyPressEffects() {
   for (let i = keyPressEffects.length - 1; i >= 0; i--) {
     let effect = keyPressEffects[i];
     let age = millis() - effect.time;
@@ -580,7 +577,7 @@ function drawKeyPressEffects() {
   }
 }
 
-function drawHitEffects() {
+function keyboarddrawHitEffects() {
   for (let i = hitEffects.length - 1; i >= 0; i--) {
     let effect = hitEffects[i];
     let age = millis() - effect.time;
@@ -603,7 +600,7 @@ function drawHitEffects() {
   }
 }
 
-function drawWhiteKeys() {
+function keyboarddrawWhiteKeys() {
   let pianoY = judgeLine;
   let whiteKeyHeight = JUDGE_LINE_Y_OFFSET * 0.65;
   
@@ -619,27 +616,27 @@ function drawWhiteKeys() {
     noStroke();
     textAlign(CENTER, CENTER);
     textSize(LANE_WIDTH * 0.18);
-    text(getKeyLabel(i), x + LANE_WIDTH / 2, pianoY + whiteKeyHeight - whiteKeyHeight * 0.25); 
+    text(keyboardgetKeyLabel(i), x + LANE_WIDTH / 2, pianoY + whiteKeyHeight - whiteKeyHeight * 0.25); 
     
     textSize(LANE_WIDTH * 0.14);
     fill(120);
-    text(getNoteName(i), x + LANE_WIDTH / 2, pianoY + whiteKeyHeight * 0.2);
+    text(keyboardgetNoteName(i), x + LANE_WIDTH / 2, pianoY + whiteKeyHeight * 0.2);
   }
 }
 
-function drawBlackKeys() {
+function keyboarddrawBlackKeys() {
   let pianoY = judgeLine;
   let whiteKeyHeight = JUDGE_LINE_Y_OFFSET * 0.65;
   let blackKeyHeight = whiteKeyHeight * 0.6;
   
-  drawBlackKey(0, pianoY, blackKeyHeight);
-  drawBlackKey(1, pianoY, blackKeyHeight);
-  drawBlackKey(3, pianoY, blackKeyHeight);
-  drawBlackKey(4, pianoY, blackKeyHeight);
-  drawBlackKey(5, pianoY, blackKeyHeight);
+  keyboarddrawBlackKey(0, pianoY, blackKeyHeight);
+  keyboarddrawBlackKey(1, pianoY, blackKeyHeight);
+  keyboarddrawBlackKey(3, pianoY, blackKeyHeight);
+  keyboarddrawBlackKey(4, pianoY, blackKeyHeight);
+  keyboarddrawBlackKey(5, pianoY, blackKeyHeight);
 }
 
-function drawBlackKey(whiteKeyIndex, pianoY, blackKeyHeight) {
+function keyboarddrawBlackKey(whiteKeyIndex, pianoY, blackKeyHeight) {
   let x = TRACK_X_OFFSET + (whiteKeyIndex + 1) * LANE_WIDTH - LANE_WIDTH * 0.25;
   
   fill(40);
@@ -648,17 +645,17 @@ function drawBlackKey(whiteKeyIndex, pianoY, blackKeyHeight) {
   rect(x, pianoY, LANE_WIDTH * 0.5, blackKeyHeight);
 }
 
-function getKeyLabel(lane) {
+function keyboardgetKeyLabel(lane) {
   const keys = ['W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O'];
   return keys[lane];
 }
 
-function getNoteName(lane) {
+function keyboardgetNoteName(lane) {
   const noteNames = ['도', '레', '미', '파', '솔', '라', '시', '도'];
   return noteNames[lane];
 }
 
-function drawInfo() {
+function keyboarddrawInfo() {
   fill(255, 150);
   noStroke();
   textAlign(LEFT, TOP);
@@ -702,17 +699,17 @@ function drawInfo() {
   }
 }
 
-function getLaneFromKey(k) {
+function keyboardgetLaneFromKey(k) {
   const upperKey = k.toUpperCase();
   const keys = ['W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O'];
   return keys.indexOf(upperKey);
 }
 
-function keyPressed() {
-  let lane = getLaneFromKey(key);
+function keyboardkeyPressed() {
+  let lane = keyboardgetLaneFromKey(key);
   
   if (lane !== -1) {
-    handleInput(lane);
+    keyboardhandleInput(lane);
     keyPressEffects.push({
       lane: lane,
       time: millis()
@@ -720,13 +717,13 @@ function keyPressed() {
   }
 }
 
-function keyReleased() {
-  let lane = getLaneFromKey(key);
+function keyboardkeyReleased() {
+  let lane = keyboardgetLaneFromKey(key);
   
   if (lane !== -1) {
     for (let note of notes) {
       if (note.lane === lane && note.active && note.type === 'hold' && note.holding) {
-        let noteYEnd = calcNoteY(note.endTime);
+        let noteYEnd = keyboardcalcNoteY(note.endTime);
         let distFromJudge = Math.abs(judgeLine - noteYEnd);
         
         // [싱크 수정] 롱노트 해제 판정 타임라인 보정
@@ -739,8 +736,8 @@ function keyReleased() {
           
           lastJudgment = {
             text: 'MISS',
-            note: getNoteName(lane),
-            key: getKeyLabel(lane),
+            note: keyboardgetNoteName(lane),
+            key: keyboardgetKeyLabel(lane),
             timing: 'EARLY RELEASE',
             startScale: 1.4
           };
@@ -757,7 +754,7 @@ function keyReleased() {
 // ============================================
 // 화면 거리(Pixel) 기반 판정 및 스코어 연동 로직
 // ============================================
-function handleInput(lane) {
+function keyboardhandleInput(lane) {
   let closestNote = null;
   let minDistDiff = Infinity;
   
@@ -765,7 +762,7 @@ function handleInput(lane) {
     if (note.lane === lane && note.active) {
       if (note.type === 'hold' && note.headHit) continue;
       
-      let noteY = calcNoteY(note.time);
+      let noteY = keyboardcalcNoteY(note.time);
       let distDiff = Math.abs(judgeLine - noteY); 
       
       if (distDiff < minDistDiff) {
@@ -811,8 +808,8 @@ function handleInput(lane) {
     
     lastJudgment = {
       text: judgment,
-      note: getNoteName(lane),
-      key: getKeyLabel(lane),
+      note: keyboardgetNoteName(lane),
+      key: keyboardgetKeyLabel(lane),
       timing: `${minDistDiff.toFixed(1)}px`, 
       startScale: 1.2
     };
@@ -824,8 +821,4 @@ function handleInput(lane) {
       color: effectColor
     });
   }
-}
-
-export function playKeyboard() {
-    console.log("키보드 연주 시작!");
 }
