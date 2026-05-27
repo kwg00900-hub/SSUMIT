@@ -825,3 +825,7 @@ function handleInput(lane) {
     });
   }
 }
+
+export function playKeyboard() {
+    console.log("키보드 연주 시작!");
+}
