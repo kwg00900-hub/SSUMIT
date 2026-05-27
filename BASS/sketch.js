@@ -539,3 +539,7 @@ function drawUI() {
     text(lastJudgment.timing, width / 2 + 100, height / 2 + 15);
   }
 }
+
+export function playBass() {
+    console.log("베이스 연주 시작!");
+}
