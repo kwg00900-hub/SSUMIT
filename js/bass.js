@@ -119,6 +119,8 @@ function bassCreateChart() {
   NOTEs = [];
   bassCurrentBeatTracker = 0; 
   
+  bassRest(NOTE_1*9);
+
   //9마디
   bassPlay(4, NOTE_4); bassRest(NOTE_4);
   bassRest(NOTE_8);
@@ -584,17 +586,17 @@ function bassUpdateGameScale() {
 function bassDraw() {
   background(bassCOLOR_CONFIG.BACKGROUND);
   
-  if (!bassIsGameStarted) {
-    fill(255);
-    noStroke();
-    textAlign(CENTER, CENTER);
-    textSize(max(16, width * 0.02));
-    text("화면을 클릭하면 음악과 함께 게임이 시작됩니다.", width / 2, height / 2);
-    return;
-  }
+//if (!bassIsGameStarted) {
+  //  fill(255);
+ //   noStroke();
+ //   textAlign(CENTER, CENTER);
+  //  textSize(max(16, width * 0.02));
+ //   text("화면을 클릭하면 음악과 함께 게임이 시작됩니다.", width / 2, height / 2);
+ //  return;
+ //}
   
   // 메인 타워에서 주는 globalTime 변수로 변경 완료!
-  bassCurrentTime = globalTime;
+  bassCurrentTime = globalSongTime;
   
   bassTargetPointerY = lerp(bassTargetPointerY, mouseY, 0.8);
   let activeLane = bassGetCurrentHitLane();
@@ -865,10 +867,10 @@ function bassHandleRelease(activeLane) {
 // 입력 및 UI
 // ============================================
 function bassMousePressed() {
-  if (!bassIsGameStarted) {
-    bassIsGameStarted = true;
-    return;
-  }
+  //if (!bassIsGameStarted) {
+  //  bassIsGameStarted = true;
+  //  return;
+  //}
   if (mouseButton === LEFT) {
     bassIsInputPressed = true;
     let activeLane = bassGetCurrentHitLane();
