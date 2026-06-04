@@ -1,5 +1,5 @@
 // ===================================================
-// [최종본] 정밀 타임라인 세션 체인저 (main.js)
+// [최종 수정본] 정밀 타임라인 세션 체인저 (main.js)
 // ===================================================
 
 let masterBgm;
@@ -16,10 +16,12 @@ let uiButtons = {
   replay: { x: 0, y: 0, w: 220, h: 60, label: "REPLAY" }
 };
 
+// 🌟 수정한 부분: 중복된 키 이름을 BASS1, BASS2로 분리
 const SESSION_TIMELINE = {
   KEYBOARD: { start: 0,      end: 17500  },
-  BASS:     { start: 17500,  end: 31500  },
-  DRUM:     { start: 31500,  end: 48000 }
+  BASS1:    { start: 17500,  end: 31500  },
+  DRUM:     { start: 31500,  end: 48000  },
+  BASS2:    { start: 48000,  end: 100000 }
 };
 
 function preload() {
@@ -66,23 +68,30 @@ function draw() {
       globalSongTime = masterBgm.currentTime() * 1000;
     }
     
-    // 타임라인 종료 체크
-    if (globalSongTime >= 48000) { 
+    // 🌟 수정한 부분: 타임라인 종료 체크를 최종 시간인 100초(BASS2의 end)로 변경
+    if (globalSongTime >= SESSION_TIMELINE.BASS2.end) { 
       isSongPlaying = false;
       isGameEnded = true;
     }
 
-    // 릴레이 로직
+    // 🌟 수정한 부분: 분리된 BASS1, BASS2 조건에 맞춰 릴레이 로직 업데이트
     if (globalSongTime >= SESSION_TIMELINE.KEYBOARD.start && globalSongTime < SESSION_TIMELINE.KEYBOARD.end) {
       if (typeof keyboardDraw === 'function') keyboardDraw();
       drawSessionIndicator("KEYBOARD SESSION");
-    } else if (globalSongTime >= SESSION_TIMELINE.BASS.start && globalSongTime < SESSION_TIMELINE.BASS.end) {
+    } 
+    else if (globalSongTime >= SESSION_TIMELINE.BASS1.start && globalSongTime < SESSION_TIMELINE.BASS1.end) {
       if (typeof bassDraw === 'function') bassDraw();
-      drawSessionIndicator("BASS SESSION");
-    } else if (globalSongTime >= SESSION_TIMELINE.DRUM.start && globalSongTime < SESSION_TIMELINE.DRUM.end) {
+      drawSessionIndicator("BASS SESSION (1)");
+    } 
+    else if (globalSongTime >= SESSION_TIMELINE.DRUM.start && globalSongTime < SESSION_TIMELINE.DRUM.end) {
       if (typeof drumDraw === 'function') drumDraw();
       drawSessionIndicator("DRUM SESSION");
+    } 
+    else if (globalSongTime >= SESSION_TIMELINE.BASS2.start && globalSongTime < SESSION_TIMELINE.BASS2.end) {
+      if (typeof bassDraw === 'function') bassDraw(); // 동일한 베이스 draw 함수 호출
+      drawSessionIndicator("BASS SESSION (2)");
     }
+    
     drawMasterOverlay();
   }
 }
@@ -111,14 +120,6 @@ function drawEndScreen() {
   fill(255, 215, 0);
   textSize(60);
   text("STAGE CLEAR", width / 2, height / 2 - 120);
-
-  // 등급 표시 (구현 전 주석)
-  /*
-  let rank = "A"; // 추후 점수 기반 로직 삽입
-  textSize(40);
-  fill(255);
-  text("RANK: " + rank, width / 2, height / 2 - 50);
-  */
 
   // 제작 크레딧
   fill(200);
@@ -192,22 +193,18 @@ function drawMasterOverlay() {
 function mousePressed() {
   if (isHelpVisible) { isHelpVisible = false; return; }
 
-  // 풀스크린
   if (mouseX > uiButtons.full.x && mouseX < uiButtons.full.x + uiButtons.full.w && mouseY > uiButtons.full.y && mouseY < uiButtons.full.y + uiButtons.full.h) {
     fullscreen(!fullscreen()); return;
   }
 
-  // 시작 버튼
   if (!isSongPlaying && !isGameEnded && mouseX > uiButtons.start.x && mouseX < uiButtons.start.x + uiButtons.start.w && mouseY > uiButtons.start.y && mouseY < uiButtons.start.y + uiButtons.start.h) {
     startEnsembleGame();
   }
 
-  // 설명 버튼
   if (!isSongPlaying && !isGameEnded && mouseX > uiButtons.help.x && mouseX < uiButtons.help.x + uiButtons.help.w && mouseY > uiButtons.help.y && mouseY < uiButtons.help.y + uiButtons.help.h) {
     isHelpVisible = true;
   }
 
-  // 다시 플레이 버튼
   if (isGameEnded && mouseX > uiButtons.replay.x && mouseX < uiButtons.replay.x + uiButtons.replay.w && mouseY > uiButtons.replay.y && mouseY < uiButtons.replay.y + uiButtons.replay.h) {
     isGameEnded = false;
     startEnsembleGame();
@@ -223,13 +220,17 @@ function startEnsembleGame() {
   globalSongTime = 0;
 }
 
+// 🌟 수정한 부분: 키보드 입력 및 떼기 조건문에도 BASS1, BASS2 통합 적용
 function keyPressed() {
   if (!isSongPlaying) return;
   if (globalSongTime >= SESSION_TIMELINE.KEYBOARD.start && globalSongTime < SESSION_TIMELINE.KEYBOARD.end) {
     if (typeof keyboardKeyPressed === 'function') keyboardKeyPressed();
-  } else if (globalSongTime >= SESSION_TIMELINE.BASS.start && globalSongTime < SESSION_TIMELINE.BASS.end) {
+  } 
+  else if ((globalSongTime >= SESSION_TIMELINE.BASS1.start && globalSongTime < SESSION_TIMELINE.BASS1.end) || 
+           (globalSongTime >= SESSION_TIMELINE.BASS2.start && globalSongTime < SESSION_TIMELINE.BASS2.end)) {
     if (typeof bassKeyPressed === 'function') bassKeyPressed();
-  } else if (globalSongTime >= SESSION_TIMELINE.DRUM.start && globalSongTime < SESSION_TIMELINE.DRUM.end) {
+  } 
+  else if (globalSongTime >= SESSION_TIMELINE.DRUM.start && globalSongTime < SESSION_TIMELINE.DRUM.end) {
     if (typeof drumKeyPressed === 'function') drumKeyPressed();
   }
 }
@@ -238,9 +239,12 @@ function keyReleased() {
   if (!isSongPlaying) return;
   if (globalSongTime >= SESSION_TIMELINE.KEYBOARD.start && globalSongTime < SESSION_TIMELINE.KEYBOARD.end) {
     if (typeof keyboardKeyReleased === 'function') keyboardKeyReleased();
-  } else if (globalSongTime >= SESSION_TIMELINE.BASS.start && globalSongTime < SESSION_TIMELINE.BASS.end) {
+  } 
+  else if ((globalSongTime >= SESSION_TIMELINE.BASS1.start && globalSongTime < SESSION_TIMELINE.BASS1.end) || 
+           (globalSongTime >= SESSION_TIMELINE.BASS2.start && globalSongTime < SESSION_TIMELINE.BASS2.end)) {
     if (typeof bassKeyReleased === 'function') bassKeyReleased();
-  } else if (globalSongTime >= SESSION_TIMELINE.DRUM.start && globalSongTime < SESSION_TIMELINE.DRUM.end) {
+  } 
+  else if (globalSongTime >= SESSION_TIMELINE.DRUM.start && globalSongTime < SESSION_TIMELINE.DRUM.end) {
     if (typeof drumKeyReleased === 'function') drumKeyReleased();
   }
 }
