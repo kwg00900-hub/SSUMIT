@@ -40,18 +40,15 @@ let drumNotes = []; // 채보 함수들이 자동으로 노트를 채워 넣을 
 
 function drumPreload(){
   // 메인(main.js)에서 음악을 로드하므로 드럼에서는 오디오 로드를 꺼둡니다.
-  // try {
-  //   bgm = loadSound('music/126.mp3');
-  // } catch (e) {
-  //   console.log("음악 파일을 불러올 수 없습니다. 웹캠 모션 및 키 입력 테스트 모드로 진행합니다.");
-  // }
 }
 
 // ==========================================
 // 🎵 [핵심] 누적 박자 계산식 및 채보 작성 구역
 // ==========================================
+let drumAUDIO_OFFSET = 0; // 베이스와 동일한 오디오 보정값 추가
+
 function drumBeatToTime(beat) {
-  return 32281 + (beat * 60 / drumSONG_BPM) * 1000;
+  return (beat * 60 / drumSONG_BPM) * 1000; // 32281 하드코딩 제거
 }
 
 // 노트를 찍는 함수
@@ -80,10 +77,12 @@ function drumRest(beatLength) {
   drumCurrentBeatTracker += beatLength;
 }
 
-// 실제 채보를 작성하는 공간 (이전 파일 방식과 100% 동일)
+// 실제 채보를 작성하는 공간
 function drumCreateChart() {
   drumNotes = [];
   drumCurrentBeatTracker = 0;
+
+  drumRest(drumNOTE_1 * 17);
 
   // 17마디
   drumRest(drumNOTE_1);
@@ -155,248 +154,254 @@ function drumCreateChart() {
   drumAddNote('Snare');              drumRest(drumNOTE_4);
   drumAddNote('Snare');              drumRest(drumNOTE_4);
 
-drumRest(drumNOTE_1);  // 25마디
-drumRest(drumNOTE_1);  // 26마디
-drumRest(drumNOTE_1);  // 27마디
-drumRest(drumNOTE_1);  // 28마디
-drumRest(drumNOTE_1);  // 29마디
-drumRest(drumNOTE_1);  // 30마디
-drumRest(drumNOTE_1);  // 31마디
-drumRest(drumNOTE_1);  // 32마디
+  drumRest(drumNOTE_1);  // 25마디
+  drumRest(drumNOTE_1);  // 26마디
+  drumRest(drumNOTE_1);  // 27마디
+  drumRest(drumNOTE_1);  // 28마디
+  drumRest(drumNOTE_1);  // 29마디
+  drumRest(drumNOTE_1);  // 30마디
+  drumRest(drumNOTE_1);  // 31마디
+  drumRest(drumNOTE_1);  // 32마디
 
-// 33마디
-drumRest(drumNOTE_1);
+  // 33마디
+  drumRest(drumNOTE_1);
 
-drumAddNote('Ride');               drumRest(drumNOTE_8);
-drumAddNote('Ride');               drumRest(drumNOTE_8);
-drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Ride');               drumRest(drumNOTE_8);
-drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
-drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Ride');               drumRest(drumNOTE_8);
+  // [보정] Ride 패턴 1: 원래 3.5박자였던 것을 마지막에 쉬표를 주어 4박자로 맞춤
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
+  drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumRest(drumNOTE_8); 
 
-drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
-drumAddNote('Ride');               drumRest(drumNOTE_8);
-drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Ride');               drumRest(drumNOTE_8);
-drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
-drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+  // [보정] Ride 패턴 2: 마지막에 0.5박자 보정 추가
+  drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
+  drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+  drumRest(drumNOTE_8); 
 
-drumRest(drumNOTE_8);
-drumAddNote('Ride');               drumRest(drumNOTE_8);
-drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8);
-drumAddNote('Tom1'); drumRest(drumNOTE_8);
-drumAddNote('Tom2'); drumRest(drumNOTE_8);
-drumAddNote('FloorTom'); drumRest(drumNOTE_4);
+  drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+  drumAddNote('Tom1'); drumRest(drumNOTE_8);
+  drumAddNote('Tom2'); drumRest(drumNOTE_8);
+  drumAddNote('FloorTom'); drumRest(drumNOTE_4);
 
-drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
-drumRest(drumNOTE_4);
-drumAddNote('Tom1');  drumRest(drumNOTE_4_TR);
-drumAddNote('Tom2');  drumRest(drumNOTE_4_TR);
-drumAddNote('FloorTom');  drumRest(drumNOTE_4_TR);
+  drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
+  drumRest(drumNOTE_4);
+  drumAddNote('Tom1');  drumRest(drumNOTE_4_TR);
+  drumAddNote('Tom2');  drumRest(drumNOTE_4_TR);
+  drumAddNote('FloorTom');  drumRest(drumNOTE_4_TR);
 
-drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
-drumRest(drumNOTE_8);
-drumAddNote('Tom1'); drumRest(drumNOTE_16);
-drumAddNote('Tom1'); drumRest(drumNOTE_16);
-drumAddNote('Tom1'); drumRest(drumNOTE_16);
-drumAddNote('Tom1'); drumRest(drumNOTE_16);
-drumAddNote('Tom2'); drumRest(drumNOTE_16);
-drumAddNote('Tom2'); drumRest(drumNOTE_16);
-drumAddNote('Tom2'); drumRest(drumNOTE_16);
-drumAddNote('Tom2'); drumRest(drumNOTE_16);
-drumAddNote('FloorTom'); drumRest(drumNOTE_16);
-drumAddNote('FloorTom'); drumRest(drumNOTE_16);
+  drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
+  drumRest(drumNOTE_8);
+  drumAddNote('Tom1'); drumRest(drumNOTE_16);
+  drumAddNote('Tom1'); drumRest(drumNOTE_16);
+  drumAddNote('Tom1'); drumRest(drumNOTE_16);
+  drumAddNote('Tom1'); drumRest(drumNOTE_16);
+  drumAddNote('Tom2'); drumRest(drumNOTE_16);
+  drumAddNote('Tom2'); drumRest(drumNOTE_16);
+  drumAddNote('Tom2'); drumRest(drumNOTE_16);
+  drumAddNote('Tom2'); drumRest(drumNOTE_16);
+  drumAddNote('FloorTom'); drumRest(drumNOTE_16);
+  drumAddNote('FloorTom'); drumRest(drumNOTE_16);
 
-drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
-drumRest(drumNOTE_4);
-drumAddNote('Tom1');  drumRest(drumNOTE_4_TR);
-drumAddNote('Tom2');  drumRest(drumNOTE_4_TR);
-drumAddNote('FloorTom');  drumRest(drumNOTE_4_TR);
+  drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
+  drumRest(drumNOTE_4);
+  drumAddNote('Tom1');  drumRest(drumNOTE_4_TR);
+  drumAddNote('Tom2');  drumRest(drumNOTE_4_TR);
+  drumAddNote('FloorTom');  drumRest(drumNOTE_4_TR);
 
-// 40마디
-drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
-drumRest(drumNOTE_4);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Kick'); drumRest(drumNOTE_8); 
-drumAddNote('Snare'); drumAddNote('FloorTom'); drumRest(drumNOTE_4);
+  // 40마디
+  drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
+  drumRest(drumNOTE_4);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Kick'); drumRest(drumNOTE_8); 
+  drumAddNote('Snare'); drumAddNote('FloorTom'); drumRest(drumNOTE_4);
 
-drumRest(drumNOTE_1);  // 41마디
-drumRest(drumNOTE_1);  // 42마디
-drumRest(drumNOTE_1);  // 43마디
-drumRest(drumNOTE_1);  // 44마디
-drumRest(drumNOTE_1);  // 45마디
-drumRest(drumNOTE_1);  // 46마디
-drumRest(drumNOTE_1);  // 47마디
-drumRest(drumNOTE_1);  // 48마디
+  drumRest(drumNOTE_1);  // 41마디
+  drumRest(drumNOTE_1);  // 42마디
+  drumRest(drumNOTE_1);  // 43마디
+  drumRest(drumNOTE_1);  // 44마디
+  drumRest(drumNOTE_1);  // 45마디
+  drumRest(drumNOTE_1);  // 46마디
+  drumRest(drumNOTE_1);  // 47마디
+  drumRest(drumNOTE_1);  // 48마디
 
-drumRest(drumNOTE_1);  // 49마디
-drumRest(drumNOTE_1);  // 50마디
-drumRest(drumNOTE_1);  // 51마디
-drumRest(drumNOTE_1);  // 52마디
-drumRest(drumNOTE_1);  // 53마디
-drumRest(drumNOTE_1);  // 54마디
-drumRest(drumNOTE_1);  // 55마디
-drumRest(drumNOTE_1);  // 56마디
+  drumRest(drumNOTE_1);  // 49마디
+  drumRest(drumNOTE_1);  // 50마디
+  drumRest(drumNOTE_1);  // 51마디
+  drumRest(drumNOTE_1);  // 52마디
+  drumRest(drumNOTE_1);  // 53마디
+  drumRest(drumNOTE_1);  // 54마디
+  drumRest(drumNOTE_1);  // 55마디
+  drumRest(drumNOTE_1);  // 56마디
 
-// 57마디
-drumRest(drumNOTE_1);
+  // 57마디
+  drumRest(drumNOTE_1);
 
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Snare'); drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Snare'); drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
 
-drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
-drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
+  drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
 
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_16);
-drumAddNote('Hihat');               drumRest(drumNOTE_16);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_16);
+  drumAddNote('Hihat');               drumRest(drumNOTE_16);
 
-drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
-drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
-drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+  drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
+  drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
+  drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
 
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Snare'); drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Snare'); drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
 
-drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
-drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
+  drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8);
 
-// 64마디
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_8);
-drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Hihat');               drumRest(drumNOTE_16);
-drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_16);
-                      drumAddNote('Snare');drumRest(drumNOTE_8);
-                      drumAddNote('Tom1');drumRest(drumNOTE_8);
-                      drumAddNote('Tom2');drumRest(drumNOTE_8);
-drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+  // 64마디
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_8);
+  drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Hihat');               drumRest(drumNOTE_16);
+  drumAddNote('Hihat'); drumAddNote('Snare');drumRest(drumNOTE_16);
+                        drumAddNote('Snare');drumRest(drumNOTE_8);
+                        drumAddNote('Tom1');drumRest(drumNOTE_8);
+                        drumAddNote('Tom2');drumRest(drumNOTE_8);
+  drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_8);
 
-drumRest(drumNOTE_1);  // 65마디
-drumRest(drumNOTE_1);  // 66마디
-drumRest(drumNOTE_1);  // 67마디
-drumRest(drumNOTE_1);  // 68마디
-drumRest(drumNOTE_1);  // 69마디
-drumRest(drumNOTE_1);  // 70마디
-drumRest(drumNOTE_1);  // 71마디
-drumRest(drumNOTE_1);  // 72마디
+  drumRest(drumNOTE_1);  // 65마디
+  drumRest(drumNOTE_1);  // 66마디
+  drumRest(drumNOTE_1);  // 67마디
+  drumRest(drumNOTE_1);  // 68마디
+  drumRest(drumNOTE_1);  // 69마디
+  drumRest(drumNOTE_1);  // 70마디
+  drumRest(drumNOTE_1);  // 71마디
+  drumRest(drumNOTE_1);  // 72마디
 
-drumRest(drumNOTE_1);  // 73마디
-drumRest(drumNOTE_1);  // 74마디
-drumRest(drumNOTE_1);  // 75마디
-drumRest(drumNOTE_1);  // 76마디
-drumRest(drumNOTE_1);  // 77마디
-drumRest(drumNOTE_1);  // 78마디
-drumRest(drumNOTE_1);  // 79마디
-drumRest(drumNOTE_1);  // 80마디
+  drumRest(drumNOTE_1);  // 73마디
+  drumRest(drumNOTE_1);  // 74마디
+  drumRest(drumNOTE_1);  // 75마디
+  drumRest(drumNOTE_1);  // 76마디
+  drumRest(drumNOTE_1);  // 77마디
+  drumRest(drumNOTE_1);  // 78마디
+  drumRest(drumNOTE_1);  // 79마디
+  drumRest(drumNOTE_1);  // 80마디
 
-drumRest(drumNOTE_1);  // 81마디
-drumRest(drumNOTE_1);  // 82마디
-drumRest(drumNOTE_1);  // 83마디
-drumRest(drumNOTE_1);  // 84마디
-drumRest(drumNOTE_1);  // 85마디
-drumRest(drumNOTE_1);  // 86마디
+  drumRest(drumNOTE_1);  // 81마디
+  drumRest(drumNOTE_1);  // 82마디
+  drumRest(drumNOTE_1);  // 83마디
+  drumRest(drumNOTE_1);  // 84마디
+  drumRest(drumNOTE_1);  // 85마디
+  drumRest(drumNOTE_1);  // 86마디
 
-// 87마디
-drumRest(drumNOTE_1);
+  // 87마디
+  drumRest(drumNOTE_1);
 
-drumAddNote('Ride');               drumRest(drumNOTE_8);
-drumAddNote('Ride');               drumRest(drumNOTE_8);
-drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Ride');               drumRest(drumNOTE_8);
-drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
-drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Ride');               drumRest(drumNOTE_8);
+  // [보정] 87마디 이후 첫 번째 Ride 패턴 블록 0.5박자 추가
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
+  drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumRest(drumNOTE_8); 
 
-drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
-drumAddNote('Ride');               drumRest(drumNOTE_8);
-drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Ride');               drumRest(drumNOTE_8);
-drumAddNote('Ride');               drumRest(drumNOTE_8);
-drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
-drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+  drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
+  drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_8);
 
-drumRest(drumNOTE_8);
-drumAddNote('Ride');                       drumRest(drumNOTE_8);
-drumAddNote('Ride'); drumAddNote('Snare'); drumRest(drumNOTE_8);
-drumAddNote('Ride');                       drumRest(drumNOTE_8);
-drumAddNote('Ride');                      drumRest(drumNOTE_8);
-drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
-drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
-drumAddNote('Ride');                      drumRest(drumNOTE_8);
+  drumRest(drumNOTE_8);
+  drumAddNote('Ride');                       drumRest(drumNOTE_8);
+  drumAddNote('Ride'); drumAddNote('Snare'); drumRest(drumNOTE_8);
+  drumAddNote('Ride');                       drumRest(drumNOTE_8);
+  drumAddNote('Ride');                      drumRest(drumNOTE_8);
+  drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
+  drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Ride');                      drumRest(drumNOTE_8);
 
-drumAddNote('Ride');                       drumRest(drumNOTE_8);
-drumAddNote('Snare'); drumAddNote('FloorTom'); drumRest(drumNOTE_8);
-drumAddNote('Snare'); drumAddNote('FloorTom'); drumRest(drumNOTE_8);
-drumAddNote('Snare'); drumAddNote('FloorTom'); drumRest(drumNOTE_8);
-drumAddNote('Snare'); drumAddNote('FloorTom'); drumRest(drumNOTE_8);
-drumAddNote('Kick'); drumRest(drumNOTE_8);
-drumAddNote('Tom1'); drumRest(drumNOTE_4);
+  drumAddNote('Ride');                       drumRest(drumNOTE_8);
+  drumAddNote('Snare'); drumAddNote('FloorTom'); drumRest(drumNOTE_8);
+  drumAddNote('Snare'); drumAddNote('FloorTom'); drumRest(drumNOTE_8);
+  drumAddNote('Snare'); drumAddNote('FloorTom'); drumRest(drumNOTE_8);
+  drumAddNote('Snare'); drumAddNote('FloorTom'); drumRest(drumNOTE_8);
+  drumAddNote('Kick'); drumRest(drumNOTE_8);
+  drumAddNote('Tom1'); drumRest(drumNOTE_4);
 
-drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
-drumRest(drumNOTE_4);
-drumAddNote('Tom1');  drumRest(drumNOTE_4_TR);
-drumAddNote('Tom2');  drumRest(drumNOTE_4_TR);
-drumAddNote('FloorTom');  drumRest(drumNOTE_4_TR);
+  drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
+  drumRest(drumNOTE_4);
+  drumAddNote('Tom1');  drumRest(drumNOTE_4_TR);
+  drumAddNote('Tom2');  drumRest(drumNOTE_4_TR);
+  drumAddNote('FloorTom');  drumRest(drumNOTE_4_TR);
 
-drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
-drumRest(drumNOTE_8);
-drumAddNote('Tom1'); drumRest(drumNOTE_16);
-drumAddNote('Tom1'); drumRest(drumNOTE_16);
-drumAddNote('Tom1'); drumRest(drumNOTE_16);
-drumAddNote('Tom1'); drumRest(drumNOTE_16);
-drumAddNote('Tom2'); drumRest(drumNOTE_16);
-drumAddNote('Tom2'); drumRest(drumNOTE_16);
-drumAddNote('Tom2'); drumRest(drumNOTE_16);
-drumAddNote('Tom2'); drumRest(drumNOTE_16);
-drumAddNote('FloorTom'); drumRest(drumNOTE_16);
-drumAddNote('FloorTom'); drumRest(drumNOTE_16);
+  drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
+  drumRest(drumNOTE_8);
+  drumAddNote('Tom1'); drumRest(drumNOTE_16);
+  drumAddNote('Tom1'); drumRest(drumNOTE_16);
+  drumAddNote('Tom1'); drumRest(drumNOTE_16);
+  drumAddNote('Tom1'); drumRest(drumNOTE_16);
+  drumAddNote('Tom2'); drumRest(drumNOTE_16);
+  drumAddNote('Tom2'); drumRest(drumNOTE_16);
+  drumAddNote('Tom2'); drumRest(drumNOTE_16);
+  drumAddNote('Tom2'); drumRest(drumNOTE_16);
+  drumAddNote('FloorTom'); drumRest(drumNOTE_16);
+  drumAddNote('FloorTom'); drumRest(drumNOTE_16);
 
-drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
-drumRest(drumNOTE_4);
-drumAddNote('Tom1');  drumRest(drumNOTE_4_TR);
-drumAddNote('Tom2');  drumRest(drumNOTE_4_TR);
-drumAddNote('FloorTom');  drumRest(drumNOTE_4_TR);
+  drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
+  drumRest(drumNOTE_4);
+  drumAddNote('Tom1');  drumRest(drumNOTE_4_TR);
+  drumAddNote('Tom2');  drumRest(drumNOTE_4_TR);
+  drumAddNote('FloorTom');  drumRest(drumNOTE_4_TR);
 
-drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
+  drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_4);
 }
 
 function drumMousePressed(){
@@ -406,7 +411,6 @@ function drumMousePressed(){
 }
 
 function drumSetup() {
-  // createCanvas(windowWidth, windowHeight);
   drumCapture = createCapture(VIDEO);
   drumCapture.size(400, 150); 
   drumCapture.hide(); 
@@ -443,7 +447,6 @@ function drumKeyPressed() {
 }
 
 function drumCheckHit(pressedType) {
-  // 메인 타워의 globalTime 연동
   let currentSongTime = globalSongTime; 
   let hitWindowMs = 120; 
 
@@ -487,9 +490,6 @@ function drumCheckHit(pressedType) {
   }
 }
 
-// ==========================================
-// ⚡ [수정] 모션 인식 감지 구간 및 민감도 정밀 제어 함수
-// ==========================================
 function drumCheckCircleMotion(cx, cy, r) {
   drumCapture.loadPixels();
   drumPrevFrame.loadPixels();
@@ -532,7 +532,6 @@ function drumCheckCircleMotion(cx, cy, r) {
 function drumDraw() {
   background(20); 
 
-  // 메인 파일에서 공유받는 통합 시계 (ms)
   let currentSongTime = globalSongTime; 
 
   push();
@@ -544,7 +543,6 @@ function drumDraw() {
   translate(offsetX, offsetY);
   scale(currentScale);
 
-  // [1] 상단: 카메라 화면 및 심벌 영역
   push();
   translate(300 + 400, 20); 
   scale(-1, 1);             
@@ -571,7 +569,6 @@ function drumDraw() {
   circle(620, 95, 60);  
   pop();
 
-  // [2] 중단: 오선지 및 빨간색 타이밍 판정선
   let targetLine = 150; 
   push();
   stroke(200); strokeWeight(2); 
@@ -584,13 +581,12 @@ function drumDraw() {
   line(targetLine, staffStartY - 20, 150, staffStartY + lineSpacing * 4 + 20);
   pop();
 
-  // [3] 중단 레이어: 시간(ms) 기반 음표 이동 알고리즘
   push();
   let speedMultiplier = 0.4; 
 
   for (let i = drumNotes.length - 1; i >= 0; i--) {
     let note = drumNotes[i];
-    let noteX = targetLine + (note.time - currentSongTime) * speedMultiplier;
+    let noteX = targetLine + (note.time - (currentSongTime + drumAUDIO_OFFSET)) * speedMultiplier;
 
     if (noteX < targetLine - 60) {
       drumJudgeList.push({
@@ -618,7 +614,6 @@ function drumDraw() {
   }
   pop();
 
-  // 판정 글자 연출 드로잉
   push();
   textAlign(CENTER, CENTER); textStyle(BOLD);
   for (let i = drumJudgeList.length - 1; i >= 0; i--) {
@@ -634,7 +629,6 @@ function drumDraw() {
   }
   pop();
 
-  // [4] 하단: 드럼 세트 매핑 가이드 및 키 텍스트
   push();
   let drumY = 550; 
   textAlign(CENTER, CENTER); textSize(24); textStyle(BOLD);
@@ -662,9 +656,6 @@ function drumDraw() {
 
 function drumDrawUI(currentSongTime) {
   fill(255); noStroke(); textAlign(LEFT, TOP); textStyle(BOLD); textSize(22);   
-  // text(`SCORE: ${drumScore}`, 30, 30);
-  // text(`COMBO: ${drumCombo}`, 30, 60);
-  
   textSize(14); fill(150);
   text(`Time: ${(currentSongTime / 1000).toFixed(2)}s  |  FPS: ${Math.round(frameRate())}`, 30, 800 - 40);
 }
