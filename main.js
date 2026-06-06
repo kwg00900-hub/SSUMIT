@@ -109,7 +109,7 @@ function updateUIElements() {
 
 // 🔘 DOM 버튼 생성 및 스타일링 (결과/게임오버 화면용)
 function initRestartButton() {
-  restartBtn = createButton('PLAY AGAIN');
+  restartBtn = createButton('GO TO MAIN');
   restartBtn.style('background-color', '#00E5FF');
   restartBtn.style('color', '#000000');
   restartBtn.style('font-family', 'Helvetica');
@@ -128,13 +128,26 @@ function initRestartButton() {
     restartBtn.style('box-shadow', 'none');
   });
 
-  restartBtn.mousePressed(() => {
-    isGameOver  = false;
-    isGameEnded = false;
-    startEnsembleGame();
+  // 🔔 [수정] 매개변수 e를 추가하고 e.stopPropagation() 처리로 버블링 완벽 방지
+  restartBtn.mousePressed((e) => {
+    if (e && e.stopPropagation) {
+      e.stopPropagation(); // p5.js 전역 mousePressed()로 이벤트가 넘어가는 것을 막음
+    }
+    
+    isSongPlaying = false; 
+    isGameOver = false;    
+    isGameEnded = false;   
+    isHelpVisible = false; // 혹시 모를 도움말 플래그도 안전하게 꺼두기
+    globalSongTime = 0;    
+    
+    if (masterBgm) {
+      masterBgm.stop();    
+    }
+    
+    restartBtn.hide();     
   });
   
-  restartBtn.hide(); // 게임 중에는 숨김
+  restartBtn.hide(); 
 }
 
 function updateButtonPosition() {
@@ -367,7 +380,7 @@ function drawStartScreen() {
 
   textSize(13);
   fill(100, 110, 130);
-  text("개발팀 썸썸써밋 : 김도경, 김도현, 김도현, 방준혁", width / 2, height / 2 - 15);
+  text("개발팀 썸썸써밋 : 김도경, 김도현, 방준혁", width / 2, height / 2 - 15);
   pop();
 
   drawButton(uiButtons.start);
