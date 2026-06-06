@@ -45,28 +45,28 @@ const bassCOLOR_CONFIG = {
   NOTE_LONG: [255, 150, 0],    
 };
 
-// 🌟 [수정] 시간 기반 판정 기준 오차 정의 (PERFECT, GREAT, MISS 3단계)
+// 🌟 시간 기반 판정 기준 오차 정의 (PERFECT, GREAT, MISS 3단계)
 const bassJUDGE_WINDOW = {
   // 1. 일찍 치는 경우 (Early) 허용 범위 - 노트가 판정선에 오기 전
-  EARLY_PERFECT: 90,   // 판정선 전 45ms 이내
-  EARLY_GREAT: 220,     // 🌟 판정선 전 220ms까지 너그럽게 인정 (일찍 쳐도 입력 허용!)
+  EARLY_PERFECT: 90,   // 판정선 전 90ms 이내
+  EARLY_GREAT: 220,     // 판정선 전 220ms까지 너그럽게 인정 (일찍 쳐도 입력 허용!)
 
   // 2. 늦게 치는 경우 (Late) 허용 범위 - 노트가 판정선을 지나간 후
-  LATE_PERFECT: 90,    // 판정선 지난 후 45ms 이내
-  LATE_GREAT: 100       // 판정선 지난 후 100ms까지만 인정 (늦게 치는 건 칼판정)
+  LATE_PERFECT: 90,    // 판정선 지난 후 90ms 이내
+  LATE_GREAT: 100       // 판정선 지난 후 100ms까지만 인정 (이 시간이 지나면 MISS 처리)
 };
 
 // ============================================
 // 게임 시스템 변수
 // ============================================
 let bassLanesY = [];
-let bassLaneSpacing = 0;       
+let bassLaneSpacing = 0;        
 let bassTargetPointerY = 0;   
 let bassLaneHitZones = [];    
 
 let NOTE_HEIGHT = 24;
 let bassSCROLL_SPEED = 500;        
-let bassAUDIO_OFFSET = 0; 
+let bassAUDIO_OFFSET = -100; 
 
 let NOTEs = [];
 let bassCurrentTime = 0;
@@ -462,7 +462,7 @@ function bassCreateChart() {
   bassPlay(3); bassRest(NOTE_8);
   bassRest(NOTE_8);
   bassPlay(3); bassRest(NOTE_8);
-  bassRest(NOTE_8); // <- 이 부분은 원본에 rest(NOTE_8)로 적혀 있어서 bassRest(NOTE_8)로 수정했습니다.
+  bassRest(NOTE_8); 
   bassPlay(3); bassRest(NOTE_8);
   bassRest(NOTE_8);
   bassPlay(3); bassRest(NOTE_8);
@@ -486,14 +486,10 @@ function bassCreateChart() {
  * @param {number} holdBeat - 롱노트 지속 박자 (생략하거나 0이면 단타 노트가 됨)
  */
 function bassPlay(stringNum, holdBeat = 0) {
-  // 1~4번 줄을 시스템 배열 인덱스 0~3으로 안전하게 치환
   let laneIndex = constrain(stringNum - 1, 0, bassCONFIG.LANE_COUNT - 1);
-  
-  // 현재까지 쌓인 박자 카운터를 밀리초(ms) 타임라인 시간으로 정밀하게 변환
   let startTimeMs = bassBeatToTime(bassCurrentBeatTracker) * 1000;
   
   if (holdBeat <= 0) {
-    // [단타 노트 추가]
     NOTEs.push({
       type: 'short',
       time: startTimeMs,
@@ -502,7 +498,6 @@ function bassPlay(stringNum, holdBeat = 0) {
       missed: false
     });
   } else {
-    // [롱노트 추가]
     let endTimeMs = bassBeatToTime(bassCurrentBeatTracker + holdBeat) * 1000;
     NOTEs.push({
       type: 'hold',
@@ -517,16 +512,11 @@ function bassPlay(stringNum, holdBeat = 0) {
   }
 }
 
-/**
- * 다음 노트가 찍힐 위치까지 타임라인 박자를 누적하며 밀어주는 함수
- * @param {number} restType - 쉼표 종류 (NOTE_4, NOTE_8 등)
- */
 function bassRest(restType) {
   bassCurrentBeatTracker += restType;
 }
 
 function bassSetup() {
-  // createCanvas(windowWidth, windowHeight);
   bassUpdateGameScale();
   if (bassFont) textFont(bassFont);
   
@@ -568,16 +558,6 @@ function bassUpdateGameScale() {
 function bassDraw() {
   background(bassCOLOR_CONFIG.BACKGROUND);
   
-//if (!bassIsGameStarted) {
-  //  fill(255);
- //   noStroke();
- //   textAlign(CENTER, CENTER);
-  //  textSize(max(16, width * 0.02));
- //   text("화면을 클릭하면 음악과 함께 게임이 시작됩니다.", width / 2, height / 2);
- //  return;
- //}
-  
-  // 메인 타워에서 주는 globalTime 변수로 변경 완료!
   bassCurrentTime = globalSongTime;
   
   bassTargetPointerY = lerp(bassTargetPointerY, mouseY, 0.8);
@@ -692,6 +672,7 @@ function bassDrawNotes() {
   }
 }
 
+// 🌟 [수정] MISS 판정 및 콤보 브레이크 로직 정상화
 function bassCheckMissedNotes(activeLane) {
   let playTime = bassCurrentTime + bassAUDIO_OFFSET;
 
@@ -699,13 +680,14 @@ function bassCheckMissedNotes(activeLane) {
     if (note.active && !note.missed) {
       
       if (note.type === 'short') {
-        if (playTime > note.time + bassJUDGE_WINDOW.GREAT) {  
-          bassTriggerMiss(note, 'MISS (OVER)');
+        // 존재하지 않던 변수인 .GREAT를 .LATE_GREAT로 정확하게 수정
+        if (playTime > note.time + bassJUDGE_WINDOW.LATE_GREAT) {  
+          bassTriggerMiss(note, 'MISS');
         }
       } 
       else if (note.type === 'hold') {
-        if (!note.headHit && playTime > note.time + bassJUDGE_WINDOW.GREAT) {
-          bassTriggerMiss(note, 'MISS (OVER)');
+        if (!note.headHit && playTime > note.time + bassJUDGE_WINDOW.LATE_GREAT) {
+          bassTriggerMiss(note, 'MISS');
         }
         else if (note.holding) {
           if (!bassIsInputPressed || activeLane !== note.lane) {
@@ -713,7 +695,7 @@ function bassCheckMissedNotes(activeLane) {
             note.holding = false;
             note.missed = true;
             bassTriggerFeedback('BREAK', 'RELEASED');
-            bassCombo = 0;
+            bassCombo = 0; // 콤보 브레이크 발생 시 확실히 리셋
             continue;
           }
           
@@ -724,7 +706,7 @@ function bassCheckMissedNotes(activeLane) {
             });
           }
           
-          if (playTime > note.endTime + bassJUDGE_WINDOW.GREAT) {
+          if (playTime > note.endTime + bassJUDGE_WINDOW.LATE_GREAT) {
             note.active = false;
             note.holding = false;
             bassTriggerFeedback('MISS', 'HOLD OVER');
@@ -740,12 +722,12 @@ function bassTriggerMiss(note, reason) {
   note.active = false;
   note.missed = true;
   note.holding = false;
+  bassCombo = 0; // 확실하게 콤보를 끊어줍니다.
   bassTriggerFeedback('MISS', reason);
-  bassCombo = 0;
 }
 
 // ============================================
-// 🌟 3단계(PERFECT, GREAT, MISS) 판정 엔진
+// 🌟 3단계(PERFECT, GREAT, MISS) 판정 엔진 안정화
 // ============================================
 function bassHandleInput(activeLane) {
   if (activeLane === -1) return;
@@ -803,7 +785,7 @@ function bassHandleInput(activeLane) {
     }
     
     let directionLabel = isEarly ? "FAST" : "SLOW";
-    bassTriggerFeedback(judgment, `${minTimeDiff.toFixed(1)}ms (${directionLabel})`);
+    bassTriggerFeedback(judgment, `${minTimeDiff.toFixed(0)}ms (${directionLabel})`);
     
     bassHitEffects.push({
       x: bassCONFIG.TARGET_X, y: bassLanesY[activeLane],
@@ -849,10 +831,6 @@ function bassHandleRelease(activeLane) {
 // 입력 및 UI
 // ============================================
 function bassMousePressed() {
-  //if (!bassIsGameStarted) {
-  //  bassIsGameStarted = true;
-  //  return;
-  //}
   if (mouseButton === LEFT) {
     bassIsInputPressed = true;
     let activeLane = bassGetCurrentHitLane();
@@ -924,15 +902,12 @@ function bassDrawHitEffects() {
 }
 
 function bassDrawUI() {
-  // 🌟 [수정] SCORE 및 COMBO 글자를 화면에 표시(text)하던 라인을 제거했습니다.
-  // 내부 데이터(bassScore, bassCombo)는 정상적으로 누적됩니다.
-  
   fill(255);
   noStroke();
   
   textSize(14);
   fill(150);
-  textAlign(LEFT, TOP); // UI 배치 정렬 유지
+  textAlign(LEFT, TOP); 
   text(`Time: ${(bassCurrentTime / 1000).toFixed(2)}s  |  FPS: ${Math.round(frameRate())}`, 30, height - 40);
 
   if (bassLastJudgment && millis() - bassJudgmentTime < 800) {
