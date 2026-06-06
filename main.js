@@ -19,11 +19,35 @@ let uiButtons = {
 
 // 🌟 타임라인 정의 (ms 단위)
 const SESSION_TIMELINE = {
-  KEYBOARD: { start: 0,      end: 17500  },
-  BASS1:    { start: 17500,  end: 31500  },
-  DRUM:     { start: 31500,  end: 48000  },
-  BASS2:    { start: 48000,  end: 100000 }
+  KEYBOARD1: { start: 0,   end: 17043  },
+  BASS1:     { start: 17043,  end: 32281  },
+  DRUM1:     { start: 32281,  end: 47519  },
+  BASS2:     { start: 47519,  end: 62757  },
+  DRUM2:     { start: 62757,  end: 77995  },
+  KEYBOARD2: { start: 77995,  end: 93233  },
+  BASS3:     { start: 93233,  end: 108471 },
+  DRUM3:     { start: 108471, end: 123710 },
+  KEYBOARD3: { start: 123710, end: 138948 },
+  BASS4:     { start: 138948, end: 150376 },
+  KEYBOARD4: { start: 150376, end: 165614 },
+  DRUM4:     { start: 165614, end: 182757 }
 };
+
+// 🌟 세션 진행 순서 및 타입 (12구간 자동화를 위한 배열)
+const SESSION_ORDER = [
+  { key: "KEYBOARD1", type: "KEYBOARD", name: "KEYBOARD SESSION (1)" },
+  { key: "BASS1",     type: "BASS",     name: "BASS SESSION (1)" },
+  { key: "DRUM1",     type: "DRUM",     name: "DRUM SESSION (1)" },
+  { key: "BASS2",     type: "BASS",     name: "BASS SESSION (2)" },
+  { key: "DRUM2",     type: "DRUM",     name: "DRUM SESSION (2)" },
+  { key: "KEYBOARD2", type: "KEYBOARD", name: "KEYBOARD SESSION (2)" },
+  { key: "BASS3",     type: "BASS",     name: "BASS SESSION (3)" },
+  { key: "DRUM3",     type: "DRUM",     name: "DRUM SESSION (3)" },
+  { key: "KEYBOARD3", type: "KEYBOARD", name: "KEYBOARD SESSION (3)" },
+  { key: "BASS4",     type: "BASS",     name: "BASS SESSION (4)" },
+  { key: "KEYBOARD4", type: "KEYBOARD", name: "KEYBOARD SESSION (4)" },
+  { key: "DRUM4",     type: "DRUM",     name: "DRUM SESSION (4)" }
+];
 
 // 🎵 BPM 126 기준 박자 계산
 const BPM = 126;
@@ -35,7 +59,7 @@ let mainCapture;
 let mainPrevFrame;
 let rightCircleTriggered = false;
 let rightTriggerTime = 0;
-let motionSuccessList = { BASS1: false, DRUM: false, BASS2: false };
+let motionSuccessList = {}; // 시작 시 SESSION_ORDER를 바탕으로 자동 초기화
 
 // ============================================
 // 🔧 초기화
@@ -95,50 +119,49 @@ function draw() {
       globalSongTime = masterBgm.currentTime() * 1000;
     }
 
-    if (globalSongTime >= SESSION_TIMELINE.BASS2.end) {
+    // 🎯 최종 세션(DRUM4)이 끝나면 게임 클리어
+    if (globalSongTime >= SESSION_TIMELINE.DRUM4.end) {
       isSongPlaying = false;
       isGameEnded = true;
       if (masterBgm) masterBgm.stop();
       return;
     }
 
-    // 1. KEYBOARD SESSION
-    if (globalSongTime >= SESSION_TIMELINE.KEYBOARD.start && globalSongTime < SESSION_TIMELINE.KEYBOARD.end) {
-      if (typeof keyboardDraw === 'function') keyboardDraw();
-      drawSessionIndicator("KEYBOARD SESSION");
-
-      if (globalSongTime >= SESSION_TIMELINE.KEYBOARD.end - FOUR_BEATS_MS) {
-        drawPageTurnOverlay(SESSION_TIMELINE.KEYBOARD.end, "BASS1");
+    // 🔄 현재 진행 중인 세션 찾기 (배열 자동화)
+    let currentSessionIdx = -1;
+    for (let i = 0; i < SESSION_ORDER.length; i++) {
+      let sessionData = SESSION_TIMELINE[SESSION_ORDER[i].key];
+      if (globalSongTime >= sessionData.start && globalSongTime < sessionData.end) {
+        currentSessionIdx = i;
+        break;
       }
     }
-    // 2. BASS SESSION (1)
-    else if (globalSongTime >= SESSION_TIMELINE.BASS1.start && globalSongTime < SESSION_TIMELINE.BASS1.end) {
-      if (!motionSuccessList.BASS1) { triggerGameOver(); return; }
 
-      if (typeof bassDraw === 'function') bassDraw();
-      drawSessionIndicator("BASS SESSION (1)");
+    if (currentSessionIdx !== -1) {
+      let currentSession = SESSION_ORDER[currentSessionIdx];
 
-      if (globalSongTime >= SESSION_TIMELINE.BASS1.end - FOUR_BEATS_MS) {
-        drawPageTurnOverlay(SESSION_TIMELINE.BASS1.end, "DRUM");
+      // 🚨 게임오버 체크 (첫 세션이 아니고, 넘어올 때 모션 성공 못 했으면 즉시 게임오버)
+      if (currentSessionIdx > 0 && !motionSuccessList[currentSession.key]) {
+        triggerGameOver();
+        return;
       }
-    }
-    // 3. DRUM SESSION
-    else if (globalSongTime >= SESSION_TIMELINE.DRUM.start && globalSongTime < SESSION_TIMELINE.DRUM.end) {
-      if (!motionSuccessList.DRUM) { triggerGameOver(); return; }
 
-      if (typeof drumDraw === 'function') drumDraw();
-      drawSessionIndicator("DRUM SESSION");
+      // 🎨 현재 세션에 맞는 게임 화면 그리기
+      if (currentSession.type === "KEYBOARD" && typeof keyboardDraw === 'function') keyboardDraw();
+      else if (currentSession.type === "BASS" && typeof bassDraw === 'function') bassDraw();
+      else if (currentSession.type === "DRUM" && typeof drumDraw === 'function') drumDraw();
 
-      if (globalSongTime >= SESSION_TIMELINE.DRUM.end - FOUR_BEATS_MS) {
-        drawPageTurnOverlay(SESSION_TIMELINE.DRUM.end, "BASS2");
+      drawSessionIndicator(currentSession.name);
+
+      // 📸 다음 세션이 있다면, 종료 4박자 전부터 모션 오버레이 표시
+      if (currentSessionIdx < SESSION_ORDER.length - 1) {
+        let sessionEnd = SESSION_TIMELINE[currentSession.key].end;
+        let nextSessionKey = SESSION_ORDER[currentSessionIdx + 1].key;
+
+        if (globalSongTime >= sessionEnd - FOUR_BEATS_MS) {
+          drawPageTurnOverlay(sessionEnd, nextSessionKey);
+        }
       }
-    }
-    // 4. BASS SESSION (2)
-    else if (globalSongTime >= SESSION_TIMELINE.BASS2.start && globalSongTime < SESSION_TIMELINE.BASS2.end) {
-      if (!motionSuccessList.BASS2) { triggerGameOver(); return; }
-
-      if (typeof bassDraw === 'function') bassDraw();
-      drawSessionIndicator("BASS SESSION (2)");
     }
 
     drawMasterOverlay();
@@ -310,7 +333,6 @@ function drawGameOverScreen() {
 }
 
 function drawEndScreen() {
-  // 각 세션 점수 합산
   let totalScore = (typeof keyboardScore !== 'undefined' ? keyboardScore : 0) +
                    (typeof bassScore     !== 'undefined' ? bassScore     : 0) +
                    (typeof drumScore     !== 'undefined' ? drumScore     : 0);
@@ -407,14 +429,21 @@ function drawMasterOverlay() {
                        (typeof drumScore     !== 'undefined' ? drumScore     : 0);
 
   let liveCombo = 0;
-  if (globalSongTime >= SESSION_TIMELINE.KEYBOARD.start && globalSongTime < SESSION_TIMELINE.KEYBOARD.end) {
-    liveCombo = typeof keyboardCombo !== 'undefined' ? keyboardCombo : 0;
-  } else if ((globalSongTime >= SESSION_TIMELINE.BASS1.start && globalSongTime < SESSION_TIMELINE.BASS1.end) ||
-             (globalSongTime >= SESSION_TIMELINE.BASS2.start && globalSongTime < SESSION_TIMELINE.BASS2.end)) {
-    liveCombo = typeof bassCombo !== 'undefined' ? bassCombo : 0;
-  } else if (globalSongTime >= SESSION_TIMELINE.DRUM.start && globalSongTime < SESSION_TIMELINE.DRUM.end) {
-    liveCombo = typeof drumCombo !== 'undefined' ? drumCombo : 0;
+  
+  // 현재 구간 타입 감지
+  let currentType = null;
+  for (let i = 0; i < SESSION_ORDER.length; i++) {
+    let session = SESSION_TIMELINE[SESSION_ORDER[i].key];
+    if (globalSongTime >= session.start && globalSongTime < session.end) {
+      currentType = SESSION_ORDER[i].type;
+      break;
+    }
   }
+
+  // 타입에 맞는 콤보 표시
+  if (currentType === "KEYBOARD") liveCombo = typeof keyboardCombo !== 'undefined' ? keyboardCombo : 0;
+  else if (currentType === "BASS") liveCombo = typeof bassCombo !== 'undefined' ? bassCombo : 0;
+  else if (currentType === "DRUM") liveCombo = typeof drumCombo !== 'undefined' ? drumCombo : 0;
 
   push();
   textAlign(RIGHT, TOP);
@@ -431,7 +460,8 @@ function drawMasterOverlay() {
   textSize(12);
   textStyle(NORMAL);
   fill(150);
-  text(`TIME: ${(globalSongTime / 1000).toFixed(1)} / ${(SESSION_TIMELINE.BASS2.end / 1000).toFixed(0)}s`, width - 30, 75);
+  // 전체 플레이 타임을 DRUM4의 끝 시간으로 맞춤
+  text(`TIME: ${(globalSongTime / 1000).toFixed(1)} / ${(SESSION_TIMELINE.DRUM4.end / 1000).toFixed(0)}s`, width - 30, 75);
   pop();
 }
 
@@ -441,27 +471,23 @@ function drawMasterOverlay() {
 function mousePressed() {
   if (isHelpVisible) { isHelpVisible = false; return; }
 
-  // 풀스크린 버튼
   if (mouseX > uiButtons.full.x && mouseX < uiButtons.full.x + uiButtons.full.w &&
       mouseY > uiButtons.full.y && mouseY < uiButtons.full.y + uiButtons.full.h) {
     fullscreen(!fullscreen()); return;
   }
 
-  // 시작 버튼
   if (!isSongPlaying && !isGameEnded && !isGameOver &&
       mouseX > uiButtons.start.x && mouseX < uiButtons.start.x + uiButtons.start.w &&
       mouseY > uiButtons.start.y && mouseY < uiButtons.start.y + uiButtons.start.h) {
     startEnsembleGame();
   }
 
-  // 도움말 버튼
   if (!isSongPlaying && !isGameEnded && !isGameOver &&
       mouseX > uiButtons.help.x && mouseX < uiButtons.help.x + uiButtons.help.w &&
       mouseY > uiButtons.help.y && mouseY < uiButtons.help.y + uiButtons.help.h) {
     isHelpVisible = true;
   }
 
-  // 리플레이 버튼 (클리어 또는 게임오버 화면)
   if ((isGameEnded || isGameOver) &&
       mouseX > uiButtons.replay.x && mouseX < uiButtons.replay.x + uiButtons.replay.w &&
       mouseY > uiButtons.replay.y && mouseY < uiButtons.replay.y + uiButtons.replay.h) {
@@ -479,16 +505,17 @@ function startEnsembleGame() {
   isSongPlaying = true;
   globalSongTime = 0;
 
-  // 모션 상태 초기화
-  motionSuccessList   = { BASS1: false, DRUM: false, BASS2: false };
+  // 🔄 12구간에 맞게 모션 성공 리스트 자동 초기화
+  motionSuccessList = {};
+  for (let i = 1; i < SESSION_ORDER.length; i++) { // 첫 번째 세션은 넘기기 없이 시작이므로 제외
+    motionSuccessList[SESSION_ORDER[i].key] = false;
+  }
   rightCircleTriggered = false;
 
-  // 점수 및 콤보 초기화
   if (typeof keyboardScore !== 'undefined') { keyboardScore = 0; keyboardCombo = 0; keyboardMaxCombo = 0; }
   if (typeof bassScore     !== 'undefined') { bassScore     = 0; bassCombo     = 0; }
   if (typeof drumScore     !== 'undefined') { drumScore     = 0; drumCombo     = 0; }
 
-  // 채보 재생성 (리플레이 대응)
   if (typeof keyboardCreateChart === 'function') keyboardCreateChart();
   if (typeof bassCreateChart     === 'function') bassCreateChart();
   if (typeof drumCreateChart     === 'function') drumCreateChart();
@@ -497,29 +524,34 @@ function startEnsembleGame() {
 function keyPressed() {
   if (!isSongPlaying) return;
 
-  if (globalSongTime >= SESSION_TIMELINE.KEYBOARD.start && globalSongTime < SESSION_TIMELINE.KEYBOARD.end) {
-    if (typeof keyboardKeyPressed === 'function') keyboardKeyPressed();
+  // 현재 재생되는 타입 감지하여 해당 모듈로 입력 전달
+  let currentType = null;
+  for (let i = 0; i < SESSION_ORDER.length; i++) {
+    let session = SESSION_TIMELINE[SESSION_ORDER[i].key];
+    if (globalSongTime >= session.start && globalSongTime < session.end) {
+      currentType = SESSION_ORDER[i].type;
+      break;
+    }
   }
-  else if ((globalSongTime >= SESSION_TIMELINE.BASS1.start && globalSongTime < SESSION_TIMELINE.BASS1.end) ||
-           (globalSongTime >= SESSION_TIMELINE.BASS2.start && globalSongTime < SESSION_TIMELINE.BASS2.end)) {
-    if (typeof bassKeyPressed === 'function') bassKeyPressed();
-  }
-  else if (globalSongTime >= SESSION_TIMELINE.DRUM.start && globalSongTime < SESSION_TIMELINE.DRUM.end) {
-    if (typeof drumKeyPressed === 'function') drumKeyPressed();
-  }
+
+  if (currentType === "KEYBOARD" && typeof keyboardKeyPressed === 'function') keyboardKeyPressed();
+  else if (currentType === "BASS" && typeof bassKeyPressed === 'function') bassKeyPressed();
+  else if (currentType === "DRUM" && typeof drumKeyPressed === 'function') drumKeyPressed();
 }
 
 function keyReleased() {
   if (!isSongPlaying) return;
 
-  if (globalSongTime >= SESSION_TIMELINE.KEYBOARD.start && globalSongTime < SESSION_TIMELINE.KEYBOARD.end) {
-    if (typeof keyboardKeyReleased === 'function') keyboardKeyReleased();
+  let currentType = null;
+  for (let i = 0; i < SESSION_ORDER.length; i++) {
+    let session = SESSION_TIMELINE[SESSION_ORDER[i].key];
+    if (globalSongTime >= session.start && globalSongTime < session.end) {
+      currentType = SESSION_ORDER[i].type;
+      break;
+    }
   }
-  else if ((globalSongTime >= SESSION_TIMELINE.BASS1.start && globalSongTime < SESSION_TIMELINE.BASS1.end) ||
-           (globalSongTime >= SESSION_TIMELINE.BASS2.start && globalSongTime < SESSION_TIMELINE.BASS2.end)) {
-    if (typeof bassKeyReleased === 'function') bassKeyReleased();
-  }
-  else if (globalSongTime >= SESSION_TIMELINE.DRUM.start && globalSongTime < SESSION_TIMELINE.DRUM.end) {
-    if (typeof drumKeyReleased === 'function') drumKeyReleased();
-  }
+
+  if (currentType === "KEYBOARD" && typeof keyboardKeyReleased === 'function') keyboardKeyReleased();
+  else if (currentType === "BASS" && typeof bassKeyReleased === 'function') bassKeyReleased();
+  else if (currentType === "DRUM" && typeof drumKeyReleased === 'function') drumKeyReleased();
 }
