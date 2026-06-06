@@ -9,7 +9,7 @@ let keyboardNOTE_HEIGHT = 15;
 let keyboardNOTE_WIDTH = 70;
 let keyboardSCROLL_SPEED = 200;
 
-let keyboardAUDIO_OFFSET = -100; 
+let keyboardAUDIO_OFFSET = -100;
 
 let keyboardNotes = [];
 let keyboardCurrentTime = 0;
@@ -38,6 +38,13 @@ let keyboardScore = 0;
 let keyboardCombo = 0;
 let keyboardMaxCombo = 0;
 let keyboardComboScale = 1.0; 
+
+// 누적 비트 트래커 (keyboard_r / keyboard_nr / keyboard_hr 전용)
+let keyboardCurrentBeat = 0;
+
+// ============================================
+// BPM 및 비트 변환
+// ============================================
 
 // BPM 설정
 function keyboardSetGameBPM(bpm) {
@@ -98,65 +105,11 @@ function keyboardMousePressed() {
 // ============================================
 // 채보 시스템
 // ============================================
-function keyboardCreateChart() {
-  keyboardNotes = []; 
-  keyboardSetGameBPM(126); 
-  
-  keyboard_n(5, 4.0);
-  keyboard_n(5, 5.0);
-  keyboard_n(5, 6.0);
-  keyboard_n(6, 6.5);
-  keyboard_n(5, 7.0);
-  keyboard_h(4, 7.5, 0.5);
-  keyboard_h(4, 8.5, 0.5);
-  keyboard_h(4, 9.5, 0.5);
-  keyboard_n(6, 10.5);
-  keyboard_n(5, 12.0);
-  keyboard_n(5, 13.0);
-  keyboard_n(5, 14.0);
-  keyboard_n(6, 14.5);
-  keyboard_n(5, 15.0);
-  keyboard_h(4, 15.5, 1.0);
-  keyboard_h(3, 17.0, 0.5);
-  keyboard_h(2, 18.0, 0.5);
-  keyboard_h(1, 19.0, 0.5);
-  keyboard_h(2, 20.0, 1.0);
-  keyboard_n(1, 23.0);
-  keyboard_n(2, 24.0);
-  keyboard_n(3, 24.5);
-  keyboard_n(4, 25.0);
-  keyboard_n(1, 25.5);
-  keyboard_h(2, 28.0, 0.5);
-  keyboard_h(3, 29.0, 0.5);
-  keyboard_h(4, 30.0, 0.5);
-  keyboard_h(5, 31.0, 0.5);
-  keyboard_h(6, 32.0, 1.0);
-  
-  // 41마디 이후 채보 영역
-  keyboard_n(2, 166.0);
-  keyboard_n(4, 166.5);
-  keyboard_n(5, 167.0);
-  keyboard_n(6, 167.5);
-  keyboard_n(5, 168.5);
-  keyboard_n(4, 169.5);
-  keyboard_n(3, 170.0);
-  keyboard_n(4, 170.5);
-  keyboard_n(4, 174.0);
-  keyboard_n(4, 174.5);
-  keyboard_n(4, 175.0);
-  keyboard_n(4, 175.5);
-  keyboard_n(4, 176.5);
-  keyboard_n(5, 177.5);
-  keyboard_n(4, 178.0);
-  keyboard_n(2, 178.5);
-  keyboard_n(2, 181.0);
-  keyboard_n(3, 181.5);
-  keyboard_n(4, 182.0);
-  keyboard_n(7, 183.0);
-  keyboard_n(7, 183.5);
-  keyboard_n(6, 184.5);
-}
 
+/**
+ * [절대 비트 방식] 기존 함수 - beat에 절대 비트값을 입력
+ * 예: keyboard_n(5, 4.0) → 4번째 비트에 5번 레인 노트 생성
+ */
 function keyboard_n(lane, beat) {
   keyboardNotes.push({
     type: 'short',
@@ -167,6 +120,10 @@ function keyboard_n(lane, beat) {
   });
 }
 
+/**
+ * [절대 비트 방식] 기존 함수 - startBeat에 절대 비트값을 입력
+ * 예: keyboard_h(4, 7.5, 0.5) → 7.5비트에 시작해 0.5비트 길이의 홀드 노트
+ */
 function keyboard_h(lane, startBeat, lengthBeat) {
   let endBeat = startBeat + lengthBeat;
   keyboardNotes.push({
@@ -179,6 +136,254 @@ function keyboard_h(lane, startBeat, lengthBeat) {
     headHit: false, 
     holding: false  
   });
+}
+
+/**
+ * [누적 비트 방식] 쉼표 - keyboardCurrentBeat를 beats만큼 앞으로 이동
+ * bassRest처럼 시간을 소비하는 용도
+ * 예: keyboard_r(4) → 4비트 쉬기
+ */
+function keyboard_r(beats) {
+  keyboardCurrentBeat += beats;
+}
+
+/**
+ * [누적 비트 방식] 노트 - keyboardCurrentBeat 위치에 노트 생성 후 beats만큼 전진
+ * 예: keyboard_nr(5, 1) → 현재 위치에 5번 레인 노트, 1비트 전진
+ */
+function keyboard_nr(lane, beats) {
+  keyboardNotes.push({
+    type: 'short',
+    time: keyboardBeatToTime(keyboardCurrentBeat) * 1000,
+    lane: lane,
+    active: true,
+    missed: false
+  });
+  keyboardCurrentBeat += beats;
+}
+
+/**
+ * [누적 비트 방식] 홀드 노트 - keyboardCurrentBeat 위치에 홀드 노트 생성
+ * @param {number} lane       - 레인 번호
+ * @param {number} lengthBeats - 홀드 길이 (비트)
+ * @param {number} restBeats  - 홀드 종료 후 추가 쉼표 (비트), 기본값 0
+ * 예: keyboard_hr(4, 2, 0.5) → 현재 위치에 2비트 홀드, 이후 0.5비트 쉬기
+ */
+function keyboard_hr(lane, lengthBeats, restBeats = 0) {
+  let endBeat = keyboardCurrentBeat + lengthBeats;
+  keyboardNotes.push({
+    type: 'hold',
+    time: keyboardBeatToTime(keyboardCurrentBeat) * 1000,
+    endTime: keyboardBeatToTime(endBeat) * 1000,
+    lane: lane,
+    active: true,
+    missed: false,
+    headHit: false,
+    holding: false
+  });
+  keyboardCurrentBeat = endBeat + restBeats;
+}
+
+/**
+ * 누적 비트 트래커를 특정 비트로 이동
+ * 새 구간 시작 시 위치를 맞출 때 사용
+ * 예: keyboardSeek(40) → 40비트 위치로 이동
+ */
+function keyboardSeek(beat) {
+  keyboardCurrentBeat = beat;
+}
+
+function keyboardCreateChart() {
+  keyboardNotes = [];
+  keyboardCurrentBeat = 0;
+  keyboardSetGameBPM(126);
+
+  // ================================================================
+  // 구간 1: 인트로 (beat 4 ~)
+  // ================================================================
+  keyboardSeek(4.0);
+  keyboard_nr(5, 1.0);        // beat 4.0
+  keyboard_nr(5, 1.0);        // beat 5.0
+  keyboard_nr(5, 0.5);        // beat 6.0
+  keyboard_nr(6, 0.5);        // beat 6.5
+  keyboard_nr(5, 0.5);        // beat 7.0
+
+  keyboardSeek(7.5);
+  keyboard_hr(4, 0.5, 0.5);   // beat 7.5,  홀드 0.5, 쉼 0.5
+
+  keyboardSeek(8.5);
+  keyboard_hr(4, 0.5, 0.5);   // beat 8.5,  홀드 0.5, 쉼 0.5
+
+  keyboardSeek(9.5);
+  keyboard_hr(4, 0.5, 0.5);   // beat 9.5,  홀드 0.5, 쉼 0.5
+
+  keyboardSeek(10.5);
+  keyboard_nr(6, 1.5);        // beat 10.5  → 쉼 1.5 → beat 12.0
+
+  keyboardSeek(12.0);
+  keyboard_nr(5, 1.0);        // beat 12.0
+  keyboard_nr(5, 1.0);        // beat 13.0
+  keyboard_nr(5, 0.5);        // beat 14.0
+  keyboard_nr(6, 0.5);        // beat 14.5
+  keyboard_nr(5, 0.5);        // beat 15.0
+
+  keyboardSeek(15.5);
+  keyboard_hr(4, 1.5, 0.0);   // beat 15.5, 홀드 1.5
+
+  keyboardSeek(17.0);
+  keyboard_hr(3, 1.0, 0.0);   // beat 17.0, 홀드 1.0
+
+  keyboardSeek(18.0);
+  keyboard_hr(2, 1.0, 0.0);   // beat 18.0, 홀드 1.0
+
+  keyboardSeek(19.0);
+  keyboard_hr(1, 1.0, 0.0);   // beat 19.0, 홀드 1.0
+
+  keyboardSeek(20.0);
+  keyboard_hr(2, 2.0, 1.0);   // beat 20.0, 홀드 2.0, 쉼 1.0 → beat 23.0
+
+  keyboardSeek(23.0);
+  keyboard_nr(1, 1.0);        // beat 23.0
+  keyboard_nr(2, 0.5);        // beat 24.0
+  keyboard_nr(3, 0.5);        // beat 24.5
+  keyboard_nr(4, 0.5);        // beat 25.0
+  keyboard_nr(1, 2.5);        // beat 25.5  → 쉼 2.5 → beat 28.0
+
+  keyboardSeek(28.0);
+  keyboard_hr(2, 1.0, 0.0);   // beat 28.0, 홀드 1.0
+
+  keyboardSeek(29.0);
+  keyboard_hr(3, 1.0, 0.0);   // beat 29.0, 홀드 1.0
+
+  keyboardSeek(30.0);
+  keyboard_hr(4, 1.0, 0.0);   // beat 30.0, 홀드 1.0
+
+  keyboardSeek(31.0);
+  keyboard_hr(5, 1.0, 0.0);   // beat 31.0, 홀드 1.0
+
+  keyboardSeek(32.0);
+  keyboard_hr(6, 2.0, 0.0);   // beat 32.0, 홀드 2.0
+
+  // ================================================================
+  // 구간 2: 너에게 하고픈 말은 (beat 164 ~)
+  // ================================================================
+  keyboardSeek(164.0);
+  keyboard_nr(6, 1.5);        // beat 164.0 → 쉼 1.5 → beat 165.5
+
+  keyboardSeek(165.5);
+  keyboard_nr(5, 3.0);        // beat 165.5 → 쉼 3.0 → beat 168.5
+
+  keyboardSeek(168.5);
+  keyboard_nr(4, 1.0);        // beat 168.5
+
+  keyboardSeek(169.5);
+  keyboard_nr(3, 2.5);        // beat 169.5 → 쉼 2.5 → beat 172.0
+
+  keyboardSeek(172.0);
+  keyboard_nr(3, 1.5);        // beat 172.0
+
+  keyboardSeek(173.5);
+  keyboard_nr(2, 3.0);        // beat 173.5 → 쉼 3.0 → beat 176.5
+
+  keyboardSeek(176.5);
+  keyboard_nr(1, 1.0);        // beat 176.5
+
+  keyboardSeek(177.5);
+  keyboard_nr(0, 2.5);        // beat 177.5 → 쉼 2.5 → beat 180.0
+
+  keyboardSeek(180.0);
+  keyboard_hr(4, 4.0, 0.0);   // beat 180.0, 홀드 4.0
+
+  // ================================================================
+  // 구간 3: 오 기다림 (beat 261 ~)
+  // ================================================================
+  keyboardSeek(261.0);
+  keyboard_hr(5, 2.0, 0.5);   // beat 261.0, 홀드 2.0, 쉼 0.5
+
+  keyboardSeek(263.5);
+  keyboard_hr(4, 1.0, 1.0);   // beat 263.5, 홀드 1.0, 쉼 1.0
+
+  keyboardSeek(265.5);
+  keyboard_nr(6, 0.5);        // beat 265.5
+  keyboard_nr(6, 0.5);        // beat 266.0
+  keyboard_nr(6, 0.5);        // beat 266.5
+  keyboard_nr(5, 1.0);        // beat 267.0
+
+  keyboardSeek(268.0);
+  keyboard_hr(4, 1.0, 1.0);   // beat 268.0, 홀드 1.0, 쉼 1.0
+
+  keyboardSeek(270.0);
+  keyboard_nr(4, 0.5);        // beat 270.0
+  keyboard_nr(2, 1.0);        // beat 270.5
+  keyboard_nr(4, 1.0);        // beat 271.5
+
+  keyboardSeek(272.5);
+  keyboard_hr(2, 1.0, 2.5);   // beat 272.5, 홀드 1.0, 쉼 2.5
+
+  keyboardSeek(276.0);
+  keyboard_hr(3, 2.0, 1.5);   // beat 276.0, 홀드 2.0, 쉼 1.5
+
+  keyboardSeek(279.5);
+  keyboard_hr(4, 1.0, 0.0);   // beat 279.5, 홀드 1.0
+
+  // ================================================================
+  // 구간 4: (beat 316 ~)
+  // ================================================================
+  keyboardSeek(316.0);
+  keyboard_nr(4, 1.0);        // beat 316.0
+  keyboard_nr(4, 1.0);        // beat 317.0
+  keyboard_nr(4, 0.5);        // beat 318.0
+  keyboard_nr(4, 1.0);        // beat 318.5
+  keyboard_nr(3, 1.0);        // beat 319.5
+  keyboard_nr(3, 1.5);        // beat 320.5 → 쉼 1.5 → beat 322.0
+
+  keyboardSeek(322.0);
+  keyboard_nr(3, 1.0);        // beat 322.0
+  keyboard_nr(3, 2.0);        // beat 323.0 → 쉼 2.0 → beat 325.0
+
+  keyboardSeek(325.0);
+  keyboard_nr(4, 1.5);        // beat 325.0
+
+  keyboardSeek(326.5);
+  keyboard_nr(4, 1.0);        // beat 326.5
+  keyboard_nr(3, 1.0);        // beat 327.5
+  keyboard_nr(3, 1.5);        // beat 328.5 → 쉼 1.5 → beat 330.0
+
+  keyboardSeek(330.0);
+  keyboard_nr(4, 1.0);        // beat 330.0
+  keyboard_nr(3, 1.0);        // beat 331.0
+  keyboard_nr(2, 1.0);        // beat 332.0
+
+  // ================================================================
+  // 구간 5: (beat 333 ~)
+  // ================================================================
+  keyboardSeek(333.0);
+  keyboard_nr(2, 1.0);        // beat 333.0
+  keyboard_nr(2, 0.5);        // beat 334.0
+  keyboard_nr(2, 1.0);        // beat 334.5
+  keyboard_nr(1, 1.0);        // beat 335.5
+
+  keyboardSeek(336.5);
+  keyboard_hr(1, 1.0, 0.5);   // beat 336.5, 홀드 1.0, 쉼 0.5
+
+  keyboardSeek(338.0);
+  keyboard_nr(1, 1.0);        // beat 338.0
+  keyboard_nr(1, 2.0);        // beat 339.0 → 쉼 2.0 → beat 341.0
+
+  keyboardSeek(341.0);
+  keyboard_nr(2, 1.5);        // beat 341.0
+
+  keyboardSeek(342.5);
+  keyboard_nr(2, 1.0);        // beat 342.5
+  keyboard_nr(1, 1.0);        // beat 343.5
+  keyboard_nr(1, 1.5);        // beat 344.5 → 쉼 1.5 → beat 346.0
+
+  keyboardSeek(346.0);
+  keyboard_nr(2, 1.0);        // beat 346.0
+  keyboard_nr(1, 0.5);        // beat 347.0
+
+  keyboardSeek(347.5);
+  keyboard_nr(0, 0.0);        // beat 347.5 (마지막 노트)
 }
 
 // ============================================
@@ -522,7 +727,6 @@ function keyboardDrawInfo() {
   }
 }
 
-// 🌟 [수정 완료] 인덱스(0~7)를 정확하게 반환하도록 교체되었습니다!
 function keyboardGetLaneFromKey(k) {
   if (!k) return -1;
   const upperKey = k.toUpperCase();
