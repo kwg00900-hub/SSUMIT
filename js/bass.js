@@ -122,10 +122,7 @@ function bassCreateChart() {
   bassRest(NOTE_1*9);
 
   //9마디
-  bassPlay(4, NOTE_4); bassRest(NOTE_4);
-  bassRest(NOTE_8);
-  bassPlay(4); bassRest(NOTE_8);
-  bassRest(NOTE_2);
+  bassRest(NOTE_1);
   
   //10마디
   bassRest(NOTE_8);
@@ -209,12 +206,7 @@ function bassCreateChart() {
   bassRest(NOTE_1);
   
   //25마디
-  bassPlay(4); bassRest(NOTE_4);
-  bassPlay(4); bassRest(NOTE_4);
-  bassPlay(4); bassRest(NOTE_8);
-  bassPlay(3); bassRest(NOTE_8);
-  bassPlay(4); bassRest(NOTE_8);
-  bassPlay(4); bassRest(NOTE_8);
+  bassRest(NOTE_1);
   
   //26마디
   bassRest(NOTE_8);
@@ -327,10 +319,7 @@ function bassCreateChart() {
   bassRest(NOTE_1);
 
   //49마디
-  bassPlay(4, NOTE_4); bassRest(NOTE_4);
-  bassRest(NOTE_8);
-  bassPlay(4); bassRest(NOTE_8);
-  bassRest(NOTE_2);
+  bassRest(NOTE_1);
   
   //50마디
   bassRest(NOTE_8);
@@ -438,14 +427,7 @@ function bassCreateChart() {
   bassRest(NOTE_1);
 
   //73마디
-  bassPlay(3); bassRest(NOTE_8);
-  bassPlay(3); bassRest(NOTE_8);
-  bassRest(NOTE_8);
-  bassPlay(3); bassRest(NOTE_8);
-  bassRest(NOTE_8);
-  bassPlay(3); bassRest(NOTE_8);
-  bassRest(NOTE_8);
-  bassPlay(3); bassRest(NOTE_8);
+  bassRest(NOTE_1);
   
   //74마디
   bassRest(NOTE_8);
