@@ -139,28 +139,26 @@ function draw() {
 
     if (currentSessionIdx !== -1) {
       let currentSession = SESSION_ORDER[currentSessionIdx];
+      let sessionStart = SESSION_TIMELINE[currentSession.key].start;
 
-      // 🚨 게임오버 체크 (첫 세션이 아니고, 넘어올 때 모션 성공 못 했으면 즉시 게임오버)
-      if (currentSessionIdx > 0 && !motionSuccessList[currentSession.key]) {
+      // 🚨 [로직 변경] 첫 4박자가 지났는데도 악보를 안 넘겼으면 게임오버!
+      if (currentSessionIdx > 0 && 
+          globalSongTime >= sessionStart + FOUR_BEATS_MS && 
+          !motionSuccessList[currentSession.key]) {
         triggerGameOver();
         return;
       }
 
-      // 🎨 현재 세션에 맞는 게임 화면 그리기
+      // 🎨 현재 세션에 맞는 게임 화면 그리기 (세션은 이미 정상 전환되어 재생 중)
       if (currentSession.type === "KEYBOARD" && typeof keyboardDraw === 'function') keyboardDraw();
       else if (currentSession.type === "BASS" && typeof bassDraw === 'function') bassDraw();
       else if (currentSession.type === "DRUM" && typeof drumDraw === 'function') drumDraw();
 
       drawSessionIndicator(currentSession.name);
 
-      // 📸 다음 세션이 있다면, 종료 4박자 전부터 모션 오버레이 표시
-      if (currentSessionIdx < SESSION_ORDER.length - 1) {
-        let sessionEnd = SESSION_TIMELINE[currentSession.key].end;
-        let nextSessionKey = SESSION_ORDER[currentSessionIdx + 1].key;
-
-        if (globalSongTime >= sessionEnd - FOUR_BEATS_MS) {
-          drawPageTurnOverlay(sessionEnd, nextSessionKey);
-        }
+      // 📸 [로직 변경] 첫 세션이 아니고, 현재 세션 시작 후 4박자 이내라면 악보 넘기기 오버레이 표시
+      if (currentSessionIdx > 0 && globalSongTime < sessionStart + FOUR_BEATS_MS) {
+        drawPageTurnOverlay(sessionStart, currentSession.key);
       }
     }
 
@@ -171,8 +169,9 @@ function draw() {
 // ============================================
 // 📸 모션 인식 오버레이 (거울 모드 + 디바운스)
 // ============================================
-function drawPageTurnOverlay(targetTime, nextSessionKey) {
-  if (motionSuccessList[nextSessionKey]) return;
+function drawPageTurnOverlay(sessionStart, currentSessionKey) {
+  // 이미 모션에 성공했다면 굳이 창을 띄우지 않고 리턴
+  if (motionSuccessList[currentSessionKey]) return;
 
   push();
   translate(width / 2, height / 2);
@@ -190,8 +189,9 @@ function drawPageTurnOverlay(targetTime, nextSessionKey) {
   textStyle(BOLD);
   text("⚠️ SWIPE HAND TO TURN PAGE! ⚠️", 0, -130);
 
-  // ⏱️ BPM 126 정밀 카운트다운
-  let timeLeft = targetTime - globalSongTime;
+  // ⏱️ 현재 세션 시작 후 남은 유예 시간 카운트다운 (4, 3, 2, 1)
+  let timeElapsed = globalSongTime - sessionStart;
+  let timeLeft = FOUR_BEATS_MS - timeElapsed;
   let currentBeatCount = Math.ceil(timeLeft / ONE_BEAT_MS);
 
   if (currentBeatCount > 0 && currentBeatCount <= 4) {
@@ -230,7 +230,7 @@ function drawPageTurnOverlay(targetTime, nextSessionKey) {
 
   let timeGap = currentTime - rightTriggerTime;
   if (rightCircleTriggered && leftHit && (timeGap >= 150) && (timeGap <= 1000)) {
-    motionSuccessList[nextSessionKey] = true;
+    motionSuccessList[currentSessionKey] = true;
     rightCircleTriggered = false;
   }
 
@@ -247,7 +247,7 @@ function drawPageTurnOverlay(targetTime, nextSessionKey) {
   circle(rightCircleX, circlesY, 50);
 
   // 좌측 원 (2번 타겟)
-  if (motionSuccessList[nextSessionKey]) {
+  if (motionSuccessList[currentSessionKey]) {
     stroke(0, 255, 100);
   } else if (rightCircleTriggered) {
     stroke(0, 200, 255);
@@ -327,7 +327,7 @@ function drawGameOverScreen() {
   textSize(20);
   fill(200);
   textStyle(NORMAL);
-  text("악보를 넘기지 못해 연주가 중단되었습니다!", width / 2, height / 2);
+  text("제때 악보를 넘기지 못해 연주가 중단되었습니다!", width / 2, height / 2);
 
   drawButton(uiButtons.replay);
 }
@@ -398,8 +398,8 @@ function drawHelpPopup() {
     "베이스: 마우스를 위 아래로 움직여 조준점을 줄 위에 위치시키고 타이밍을 맞춰 스페이스바/클릭 합니다.\n\n" +
     "건반: 블럭이 떨어지는 타이밍에 맞추어 지정된 키보드를 누릅니다.\n\n" +
     "드럼: 드럼 악보 위 지정된 키를 타이밍에 맞추어 누릅니다.\n\n" +
-    "🔥 중요 🔥: 악기 파트가 바뀌기 4박자 전 화면에 '악보 넘기기 창'이 뜹니다. " +
-    "카운트가 끝나기 전에 카메라의 오른쪽 원을 터치한 뒤 1초 내에 왼쪽 원을 터치하여 악보를 넘겨야 합니다. " +
+    "🔥 중요 🔥: 새로운 악기 파트가 시작되면 화면에 '악보 넘기기 창'이 뜹니다. " +
+    "첫 4박자 카운트가 끝나기 전에 카메라의 오른쪽 원을 터치한 뒤 1초 내에 왼쪽 원을 터치하여 악보를 넘겨야 합니다. " +
     "실패 시 즉시 게임 오버됩니다!";
   text(desc, width/2 - 270, height/2 - 170, 540, 350);
   textAlign(CENTER, CENTER);
