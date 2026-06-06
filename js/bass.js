@@ -942,15 +942,15 @@ function bassDrawHitEffects() {
 }
 
 function bassDrawUI() {
+  // 🌟 [수정] SCORE 및 COMBO 글자를 화면에 표시(text)하던 라인을 제거했습니다.
+  // 내부 데이터(bassScore, bassCombo)는 정상적으로 누적됩니다.
+  
   fill(255);
   noStroke();
-  textAlign(LEFT, TOP);
-  textSize(18);
-  text(`SCORE: ${bassScore}`, 30, 30);
-  text(`COMBO: ${bassCombo}`, 30, 60);
   
   textSize(14);
   fill(150);
+  textAlign(LEFT, TOP); // UI 배치 정렬 유지
   text(`Time: ${(bassCurrentTime / 1000).toFixed(2)}s  |  FPS: ${Math.round(frameRate())}`, 30, height - 40);
 
   if (bassLastJudgment && millis() - bassJudgmentTime < 800) {
