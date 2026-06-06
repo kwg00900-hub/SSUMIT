@@ -32,13 +32,12 @@ let keyboardHitEffects = [];
 let keyboardKeyPressEffects = [];
 
 // ============================================
-// 스코어, 콤보 및 웹캠 변수
+// 스코어 및 콤보 변수
 // ============================================
 let keyboardScore = 0;
 let keyboardCombo = 0;
 let keyboardMaxCombo = 0;
 let keyboardComboScale = 1.0; 
-let keyboardVideo; 
 
 // BPM 설정
 function keyboardSetGameBPM(bpm) {
@@ -54,23 +53,14 @@ function keyboardBeatToTime(beat) {
 // 초기화 및 채보 제작
 // ============================================
 function keyboardPreload() {
-  // try {
-  //   keyboardFont = loadFont('Paperlogy-7Bold.ttf');
-  // } catch(e) {
-  //   console.log("기본 폰트로 대체합니다.");
-  // }
+  // 폰트 로드 필요 시 해제
 }
 
 function keyboardSetup() {
-  // createCanvas(windowWidth, windowHeight);
   keyboardUpdateGameScale();
   if (keyboardFont) textFont(keyboardFont);
   
   keyboardCreateChart();
-
-  // 카메라 초기화 및 캔버스 뒤 DOM 숨김 처리
-  keyboardVideo = createCapture(VIDEO);
-  keyboardVideo.hide(); 
 }
 
 function keyboardWindowResized() {
@@ -106,99 +96,67 @@ function keyboardMousePressed() {
 }
 
 // ============================================
-// [박자 직관화] 1박자(4분음표) = 1.0 기준 채보 시스템
+// 채보 시스템
 // ============================================
 function keyboardCreateChart() {
+  keyboardNotes = []; 
   keyboardSetGameBPM(126); 
+  
   keyboard_n(5, 4.0);
- keyboard_n(5, 5.0);
- keyboard_n(5, 6.0);
- keyboard_n(6, 6.5);
- keyboard_n(5, 7.0);
- keyboard_h(4, 7.5, 0.5);
- keyboard_h(4, 8.5, 0.5);
- keyboard_h(4, 9.5, 0.5);
- keyboard_n(6, 10.5);
- keyboard_n(5, 12.0);
- keyboard_n(5, 13.0);
- keyboard_n(5, 14.0);
- keyboard_n(6, 14.5);
- keyboard_n(5, 15.0);
- keyboard_h(4, 15.5, 1.5);
- keyboard_h(3, 17.0, 1.0);
- keyboard_h(2, 18.0, 1.0);
- keyboard_h(1, 19.0, 1.0);
- keyboard_h(2, 20.0, 2.0);
- keyboard_n(1, 23.0);
- keyboard_n(2, 24.0);
- keyboard_n(3, 24.5);
- keyboard_n(4, 25.0);
- keyboard_n(1, 25.5);
- keyboard_h(2, 28.0, 1.0);
- keyboard_h(3, 29.0, 1.0);
- keyboard_h(4, 30.0, 1.0);
- keyboard_h(5, 31.0, 1.0);
- keyboard_h(6, 32.0, 2.0);
+  keyboard_n(5, 5.0);
+  keyboard_n(5, 6.0);
+  keyboard_n(6, 6.5);
+  keyboard_n(5, 7.0);
+  keyboard_h(4, 7.5, 0.5);
+  keyboard_h(4, 8.5, 0.5);
+  keyboard_h(4, 9.5, 0.5);
+  keyboard_n(6, 10.5);
+  keyboard_n(5, 12.0);
+  keyboard_n(5, 13.0);
+  keyboard_n(5, 14.0);
+  keyboard_n(6, 14.5);
+  keyboard_n(5, 15.0);
+  keyboard_h(4, 15.5, 1.0);
+  keyboard_h(3, 17.0, 0.5);
+  keyboard_h(2, 18.0, 0.5);
+  keyboard_h(1, 19.0, 0.5);
+  keyboard_h(2, 20.0, 1.0);
+  keyboard_n(1, 23.0);
+  keyboard_n(2, 24.0);
+  keyboard_n(3, 24.5);
+  keyboard_n(4, 25.0);
+  keyboard_n(1, 25.5);
+  keyboard_h(2, 28.0, 0.5);
+  keyboard_h(3, 29.0, 0.5);
+  keyboard_h(4, 30.0, 0.5);
+  keyboard_h(5, 31.0, 0.5);
+  keyboard_h(6, 32.0, 1.0);
   
- // 너에게 하고픈 말은
- keyboard_n(6, 164.0);
- keyboard_n(5, 165.5);
- keyboard_n(4, 168.5);
- keyboard_n(3, 169.5);
- keyboard_n(3, 172.0);
- keyboard_n(2, 173.5);
- keyboard_n(1, 176.5);
- keyboard_n(0, 177.5);
- keyboard_h(4, 180.0,4.0);
-  
- // 오 기다림
- keyboard_h(5, 261.0,2.0);
- keyboard_h(4,263.5,1.0);
- keyboard_n(6,265.5);
- keyboard_n(6,266.0);
- keyboard_n(6,266.5);
- keyboard_n(5,267.0);
- keyboard_h(4,268.0,1.0);
- keyboard_n(4,270.0);
- keyboard_n(2,270.5);
- keyboard_n(4,271.5);
- keyboard_h(2,272.5,1.0);
- keyboard_h(3,276.0,2.0);
- keyboard_h(4,279.5,1.0);
-  
- keyboard_n(4,316.0);
- keyboard_n(4,317.0);
- keyboard_n(4,318.0);
- keyboard_n(4,318.5);
- keyboard_n(3,319.5);
- keyboard_n(3,320.5);
- keyboard_n(3,322.0);
- keyboard_n(3,323.0); 
- keyboard_n(4,325.0);
- keyboard_n(4,326.5);
- keyboard_n(3,327.5);
- keyboard_n(3,328.5);
- keyboard_n(4,330.0);
- keyboard_n(3,331.0);
- keyboard_n(2,332.0);
-  
- keyboard_n(2,333.0);
- keyboard_n(2,334.0);
- keyboard_n(2,334.5);
- keyboard_n(1,335.5);
- keyboard_h(1,336.5,1.0);
- keyboard_n(1,338.0);
- keyboard_n(1,339.0);
- keyboard_n(2,341.0);
- keyboard_n(2,342.5);
- keyboard_n(1,343.5);
- keyboard_n(1,344.5);
- keyboard_n(2,346.0);
- keyboard_n(1,347.0);
- keyboard_n(0,347.5);
+  // 41마디 이후 채보 영역
+  keyboard_n(2, 166.0);
+  keyboard_n(4, 166.5);
+  keyboard_n(5, 167.0);
+  keyboard_n(6, 167.5);
+  keyboard_n(5, 168.5);
+  keyboard_n(4, 169.5);
+  keyboard_n(3, 170.0);
+  keyboard_n(4, 170.5);
+  keyboard_n(4, 174.0);
+  keyboard_n(4, 174.5);
+  keyboard_n(4, 175.0);
+  keyboard_n(4, 175.5);
+  keyboard_n(4, 176.5);
+  keyboard_n(5, 177.5);
+  keyboard_n(4, 178.0);
+  keyboard_n(2, 178.5);
+  keyboard_n(2, 181.0);
+  keyboard_n(3, 181.5);
+  keyboard_n(4, 182.0);
+  keyboard_n(7, 183.0);
+  keyboard_n(7, 183.5);
+  keyboard_n(6, 184.5);
 }
 
-// 단노트 생성 함수 (1박자 = 1.0 기준)
 function keyboard_n(lane, beat) {
   keyboardNotes.push({
     type: 'short',
@@ -209,7 +167,6 @@ function keyboard_n(lane, beat) {
   });
 }
 
-// 롱노트 생성 함수
 function keyboard_h(lane, startBeat, lengthBeat) {
   let endBeat = startBeat + lengthBeat;
   keyboardNotes.push({
@@ -230,19 +187,9 @@ function keyboard_h(lane, startBeat, lengthBeat) {
 function keyboardDraw() {
   background(20);
   
-  if (!keyboardIsGameStarted) {
-    fill(255);
-    noStroke();
-    textAlign(CENTER, CENTER);
-    textSize(max(16, width * 0.02));
-    text("화면을 클릭하면 음악과 함께 게임이 시작됩니다.", width / 2, height / 2);
-    return;
-  }
+  keyboardCurrentTime = globalSongTime;
   
-  // 메인 시스템 연동 타이머
-  keyboardCurrentTime = globalTime;
-  
-  // 1. 사이드 배경 UI 렌더링
+  // 1. 사이드 배경 UI
   keyboardDrawCustomLeftUI();  
   keyboardDrawCustomRightUI(); 
   
@@ -265,109 +212,9 @@ function keyboardDraw() {
   keyboardDrawInfo();
 }
 
-function keyboardDrawCustomLeftUI() {
-  let uiWidth = keyboardTRACK_X_OFFSET - 10;
-  if (uiWidth <= 0) return;
+function keyboardDrawCustomLeftUI() {}
 
-  fill(15, 15, 25);
-  noStroke();
-  rect(0, 0, uiWidth, height);
-  
-  stroke(0, 230, 255, 40);
-  strokeWeight(2);
-  line(uiWidth, 0, uiWidth, height);
-
-  textAlign(CENTER, CENTER);
-  
-  fill(0, 230, 255, 150);
-  textSize(max(12, uiWidth * 0.1));
-  text("SCORE", uiWidth / 2, height * 0.2);
-  
-  fill(255);
-  textSize(max(18, uiWidth * 0.14));
-  text(nf(keyboardScore, 6), uiWidth / 2, height * 0.25);
-
-  if (keyboardCombo > 0) {
-    keyboardComboScale = lerp(keyboardComboScale, 1.0, 0.1); 
-    
-    push();
-    translate(uiWidth / 2, height * 0.45);
-    scale(keyboardComboScale);
-    
-    fill(255, 200, 0, 30);
-    textSize(max(24, uiWidth * 0.28));
-    text(keyboardCombo, 0, 0);
-    
-    fill(255, 215, 0);
-    textSize(max(22, uiWidth * 0.25));
-    text(keyboardCombo, 0, -2);
-    pop();
-
-    fill(200, 200, 200);
-    textSize(max(11, uiWidth * 0.09));
-    text("COMBO", uiWidth / 2, height * 0.53);
-  }
-
-  fill(120, 120, 130);
-  textSize(max(10, uiWidth * 0.08));
-  text(`MAX COMBO  ${keyboardMaxCombo}`, uiWidth / 2, height * 0.75);
-}
-
-function keyboardDrawCustomRightUI() {
-  let trackRightEdge = keyboardTRACK_X_OFFSET + keyboardLANE_WIDTH * keyboardLANE_COUNT;
-  let uiWidth = width - trackRightEdge - 10;
-  if (uiWidth <= 0) return;
-
-  fill(15, 15, 25);
-  noStroke();
-  rect(trackRightEdge + 10, 0, uiWidth, height);
-  
-  stroke(255, 0, 128, 40);
-  strokeWeight(2);
-  line(trackRightEdge + 10, 0, trackRightEdge + 10, height);
-
-  let startX = trackRightEdge + 25;
-  let containerWidth = width - startX - 25;
-
-  fill(255, 0, 128, 150);
-  textSize(max(12, uiWidth * 0.1));
-  textAlign(LEFT, TOP);
-  text("PLAYER CAM", startX, height * 0.08);
-
-  let camY = height * 0.13; 
-  
-  if (keyboardVideo && keyboardVideo.loadedmetadata) {
-    let camAspect = keyboardVideo.height / keyboardVideo.width;
-    let camHeight = containerWidth * camAspect;
-    
-    stroke(0, 230, 255, 150);
-    strokeWeight(2);
-    fill(0, 50);
-    rect(startX - 2, camY - 2, containerWidth + 4, camHeight + 4, 4);
-    
-    image(keyboardVideo, startX, camY, containerWidth, camHeight);
-  } else {
-    fill(30);
-    stroke(100);
-    strokeWeight(1);
-    rect(startX, camY, containerWidth, containerWidth * 0.75, 4);
-    
-    fill(150);
-    noStroke();
-    textAlign(CENTER, CENTER);
-    textSize(12);
-    text("Loading Camera...", startX + containerWidth / 2, camY + (containerWidth * 0.75) / 2);
-  }
-
-  fill(140, 140, 150);
-  textSize(max(11, uiWidth * 0.08));
-  textAlign(LEFT, TOP);
-  
-  let infoY = height * 0.65;
-  text(`SPEED : ${(keyboardSCROLL_SPEED/100).toFixed(1)}x`, startX, infoY);
-  text(`SYNC  : ${keyboardAUDIO_OFFSET}ms`, startX, infoY + 25);
-  text(`SONG  : Neon Beats (126)`, startX, infoY + 50);
-}
+function keyboardDrawCustomRightUI() {}
 
 function keyboardDrawBeatLines() {
   stroke(100, 100, 150, 100);
@@ -675,10 +522,12 @@ function keyboardDrawInfo() {
   }
 }
 
+// 🌟 [수정 완료] 인덱스(0~7)를 정확하게 반환하도록 교체되었습니다!
 function keyboardGetLaneFromKey(k) {
+  if (!k) return -1;
   const upperKey = k.toUpperCase();
   const keys = ['W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O'];
-  return keys.indexOf(upperKey);
+  return keys.indexOf(upperKey); 
 }
 
 function keyboardKeyPressed() {
