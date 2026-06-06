@@ -346,10 +346,25 @@ drumRest(drumNOTE_1);  // 83마디
 drumRest(drumNOTE_1);  // 84마디
 drumRest(drumNOTE_1);  // 85마디
 drumRest(drumNOTE_1);  // 86마디
-drumRest(drumNOTE_1);  // 87마디
-drumRest(drumNOTE_1);  // 88마디
 
-// 89마디
+// 87마디
+drumRest(drumNOTE_8);
+drumAddNote('Ride');                       drumRest(drumNOTE_8);
+drumAddNote('Ride'); drumAddNote('Snare'); drumRest(drumNOTE_8);
+drumAddNote('Ride');                       drumRest(drumNOTE_8);
+drumAddNote('Ride');                      drumRest(drumNOTE_8);
+drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
+drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8);
+
+drumAddNote('Ride');               drumRest(drumNOTE_8);
+drumAddNote('Ride');               drumRest(drumNOTE_8);
+drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+drumAddNote('Ride');               drumRest(drumNOTE_8);
+drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
+drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+drumAddNote('Ride');               drumRest(drumNOTE_8);
+
 drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
 drumAddNote('Ride');               drumRest(drumNOTE_8);
 drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
