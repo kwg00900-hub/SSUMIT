@@ -51,7 +51,7 @@ function drumPreload(){
 // 🎵 [핵심] 누적 박자 계산식 및 채보 작성 구역
 // ==========================================
 function drumBeatToTime(beat) {
-  return 31500 +(beat * 60 / drumSONG_BPM) * 1000;
+  return 32281 + (beat * 60 / drumSONG_BPM) * 1000;
 }
 
 // 노트를 찍는 함수
@@ -86,7 +86,7 @@ function drumCreateChart() {
   drumCurrentBeatTracker = 0;
 
   // 17마디
-  drumRest(drumNOTE_1); 
+  drumRest(drumNOTE_1);
 
   drumAddNote('Hihat');               drumRest(drumNOTE_8);
   drumAddNote('Hihat'); drumAddNote('Kick'); drumRest(drumNOTE_8); 
@@ -148,12 +148,12 @@ function drumCreateChart() {
   // 24마디
   drumRest(drumNOTE_8);
   drumAddNote('Tom1'); drumRest(drumNOTE_16);
-  drumAddNote('Tom1'); drumRest(drumNOTE_16);
+  drumRest(drumNOTE_16);
   drumAddNote('Tom2'); drumRest(drumNOTE_16);
-  drumAddNote('Tom2'); drumRest(drumNOTE_16);
-  drumAddNote('FloorTom'); drumRest(drumNOTE_8);
-  drumAddNote('Snare'); drumAddNote('FloorTom'); drumRest(drumNOTE_4);
-  drumAddNote('Snare'); drumAddNote('FloorTom'); drumRest(drumNOTE_4);
+  drumRest(drumNOTE_16);
+  drumRest(drumNOTE_8);
+  drumAddNote('Snare');              drumRest(drumNOTE_4);
+  drumAddNote('Snare');              drumRest(drumNOTE_4);
 
 drumRest(drumNOTE_1);  // 25마디
 drumRest(drumNOTE_1);  // 26마디
@@ -165,7 +165,7 @@ drumRest(drumNOTE_1);  // 31마디
 drumRest(drumNOTE_1);  // 32마디
 
 // 33마디
-drumRest(drumNOTE_1); 
+drumRest(drumNOTE_1);
 
 drumAddNote('Ride');               drumRest(drumNOTE_8);
 drumAddNote('Ride');               drumRest(drumNOTE_8);
@@ -242,7 +242,7 @@ drumRest(drumNOTE_1);  // 55마디
 drumRest(drumNOTE_1);  // 56마디
 
 // 57마디
-drumRest(drumNOTE_1); 
+drumRest(drumNOTE_1);
 
 drumAddNote('Hihat');               drumRest(drumNOTE_8);
 drumAddNote('Hihat');               drumRest(drumNOTE_8);
@@ -335,7 +335,7 @@ drumRest(drumNOTE_1);  // 85마디
 drumRest(drumNOTE_1);  // 86마디
 
 // 87마디
-drumRest(drumNOTE_1); 
+drumRest(drumNOTE_1);
 
 drumAddNote('Ride');               drumRest(drumNOTE_8);
 drumAddNote('Ride');               drumRest(drumNOTE_8);
@@ -662,8 +662,8 @@ function drumDraw() {
 
 function drumDrawUI(currentSongTime) {
   fill(255); noStroke(); textAlign(LEFT, TOP); textStyle(BOLD); textSize(22);   
-  text(`SCORE: ${drumScore}`, 30, 30);
-  text(`COMBO: ${drumCombo}`, 30, 60);
+  // text(`SCORE: ${drumScore}`, 30, 30);
+  // text(`COMBO: ${drumCombo}`, 30, 60);
   
   textSize(14); fill(150);
   text(`Time: ${(currentSongTime / 1000).toFixed(2)}s  |  FPS: ${Math.round(frameRate())}`, 30, 800 - 40);
@@ -707,4 +707,3 @@ function drumDrawKick(x, y) {
   stroke(255); strokeWeight(2); line(x + 12, y, x + 12, y - 90); 
   fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(13); textStyle(BOLD); text("SPC", x-5, y);
 }
-
