@@ -139,26 +139,30 @@ function draw() {
 
     if (currentSessionIdx !== -1) {
       let currentSession = SESSION_ORDER[currentSessionIdx];
-      let sessionStart = SESSION_TIMELINE[currentSession.key].start;
+      let currentSessionData = SESSION_TIMELINE[currentSession.key];
 
-      // 🚨 [로직 변경] 첫 4박자가 지났는데도 악보를 안 넘겼으면 게임오버!
-      if (currentSessionIdx > 0 && 
-          globalSongTime >= sessionStart + FOUR_BEATS_MS && 
-          !motionSuccessList[currentSession.key]) {
-        triggerGameOver();
-        return;
+      // 🚨 게임오버 체크 방식 변경 (다음 세션 첫 4박자가 지났는데도 모션을 성공 못했으면 게임오버)
+      if (currentSessionIdx > 0) {
+        let gracePeriodEnd = currentSessionData.start + FOUR_BEATS_MS;
+        if (globalSongTime >= gracePeriodEnd && !motionSuccessList[currentSession.key]) {
+          triggerGameOver();
+          return;
+        }
       }
 
-      // 🎨 현재 세션에 맞는 게임 화면 그리기 (세션은 이미 정상 전환되어 재생 중)
+      // 🎨 현재 세션에 맞는 게임 화면 그리기 (이제 세션은 이미 바뀌었으므로 바로 그려짐)
       if (currentSession.type === "KEYBOARD" && typeof keyboardDraw === 'function') keyboardDraw();
       else if (currentSession.type === "BASS" && typeof bassDraw === 'function') bassDraw();
       else if (currentSession.type === "DRUM" && typeof drumDraw === 'function') drumDraw();
 
       drawSessionIndicator(currentSession.name);
 
-      // 📸 [로직 변경] 첫 세션이 아니고, 현재 세션 시작 후 4박자 이내라면 악보 넘기기 오버레이 표시
-      if (currentSessionIdx > 0 && globalSongTime < sessionStart + FOUR_BEATS_MS) {
-        drawPageTurnOverlay(sessionStart, currentSession.key);
+      // 📸 [변경됨] 첫 마디(첫 4박자) 동안 연주와 동시에 모션 오버레이 표시
+      if (currentSessionIdx > 0) {
+        let gracePeriodEnd = currentSessionData.start + FOUR_BEATS_MS;
+        if (globalSongTime >= currentSessionData.start && globalSongTime < gracePeriodEnd) {
+          drawPageTurnOverlay(gracePeriodEnd, currentSession.key);
+        }
       }
     }
 
@@ -169,15 +173,16 @@ function draw() {
 // ============================================
 // 📸 모션 인식 오버레이 (거울 모드 + 디바운스)
 // ============================================
-function drawPageTurnOverlay(sessionStart, currentSessionKey) {
-  // 이미 모션에 성공했다면 굳이 창을 띄우지 않고 리턴
+function drawPageTurnOverlay(targetTime, currentSessionKey) {
+  // 이미 해당 세션의 넘기기를 성공했다면 더 이상 오버레이를 띄우지 않음
   if (motionSuccessList[currentSessionKey]) return;
 
   push();
   translate(width / 2, height / 2);
 
   rectMode(CENTER);
-  fill(0, 0, 0, 190);
+  // 뒷배경 연주 화면이 보여야 하므로 투명도를 조금 더 줌 (190 -> 140)
+  fill(0, 0, 0, 140); 
   stroke(255, 50, 50);
   strokeWeight(3);
   rect(0, 0, 500, 320, 15);
@@ -189,9 +194,8 @@ function drawPageTurnOverlay(sessionStart, currentSessionKey) {
   textStyle(BOLD);
   text("⚠️ SWIPE HAND TO TURN PAGE! ⚠️", 0, -130);
 
-  // ⏱️ 현재 세션 시작 후 남은 유예 시간 카운트다운 (4, 3, 2, 1)
-  let timeElapsed = globalSongTime - sessionStart;
-  let timeLeft = FOUR_BEATS_MS - timeElapsed;
+  // ⏱️ 유예 시간 카운트다운 (남은 박자 표시)
+  let timeLeft = targetTime - globalSongTime;
   let currentBeatCount = Math.ceil(timeLeft / ONE_BEAT_MS);
 
   if (currentBeatCount > 0 && currentBeatCount <= 4) {
@@ -230,7 +234,7 @@ function drawPageTurnOverlay(sessionStart, currentSessionKey) {
 
   let timeGap = currentTime - rightTriggerTime;
   if (rightCircleTriggered && leftHit && (timeGap >= 150) && (timeGap <= 1000)) {
-    motionSuccessList[currentSessionKey] = true;
+    motionSuccessList[currentSessionKey] = true; // 현재 세션 넘기기 성공 처리
     rightCircleTriggered = false;
   }
 
@@ -398,8 +402,8 @@ function drawHelpPopup() {
     "베이스: 마우스를 위 아래로 움직여 조준점을 줄 위에 위치시키고 타이밍을 맞춰 스페이스바/클릭 합니다.\n\n" +
     "건반: 블럭이 떨어지는 타이밍에 맞추어 지정된 키보드를 누릅니다.\n\n" +
     "드럼: 드럼 악보 위 지정된 키를 타이밍에 맞추어 누릅니다.\n\n" +
-    "🔥 중요 🔥: 새로운 악기 파트가 시작되면 화면에 '악보 넘기기 창'이 뜹니다. " +
-    "첫 4박자 카운트가 끝나기 전에 카메라의 오른쪽 원을 터치한 뒤 1초 내에 왼쪽 원을 터치하여 악보를 넘겨야 합니다. " +
+    "🔥 중요 🔥: 새로운 악기 파트가 시작되면 첫 4박자 동안 화면에 '악보 넘기기 창'이 뜹니다. " +
+    "연주를 진행하면서 동시에 카운트가 끝나기 전에 카메라의 오른쪽 원을 터치한 뒤 1초 내에 왼쪽 원을 터치하여 악보를 넘겨야 합니다. " +
     "실패 시 즉시 게임 오버됩니다!";
   text(desc, width/2 - 270, height/2 - 170, 540, 350);
   textAlign(CENTER, CENTER);
