@@ -126,9 +126,6 @@ let rightTriggerTime     = 0;
 let motionSuccessList    = {};
 
 // ============================================
-// 🔧 배속 적용
-// ============================================
-// ============================================
 // 🔧 배속 적용 (수정본)
 // ============================================
 function applySpeed(speed) {
@@ -331,7 +328,14 @@ function draw() {
       if      (cs.type === "KEYBOARD" && typeof keyboardDraw === 'function') keyboardDraw();
       else if (cs.type === "BASS"     && typeof bassDraw     === 'function') bassDraw();
       else if (cs.type === "DRUM"     && typeof drumDraw     === 'function') drumDraw();
-      drawSessionIndicator(cs.name);
+      
+      // ▼ 병합된 다음 세션(NEXT) 인디케이터 기능 ▼
+      let nextName = "FINISH";
+      if (idx + 1 < SESSION_ORDER.length) {
+        nextName = SESSION_ORDER[idx + 1].type;
+      }
+      drawSessionIndicator(cs.name, nextName);
+
       if (idx > 0) {
         let gpe = csd.start + FOUR_BEATS_MS;
         if (globalSongTime >= csd.start && globalSongTime < gpe) drawPageTurnOverlay(gpe, cs.key);
@@ -492,8 +496,8 @@ function startEnsembleGame() {
   rightCircleTriggered = false;
 
   if (typeof keyboardScore !== 'undefined') { keyboardScore = 0; keyboardCombo = 0; keyboardMaxCombo = 0; }
-  if (typeof bassScore     !== 'undefined') { bassScore     = 0; bassCombo     = 0; }
-  if (typeof drumScore     !== 'undefined') { drumScore     = 0; drumCombo     = 0; }
+  if (typeof bassScore     !== 'undefined') { bassScore     = 0; bassCombo      = 0; }
+  if (typeof drumScore     !== 'undefined') { drumScore     = 0; drumCombo      = 0; }
 
   if (typeof keyboardCreateChart === 'function') keyboardCreateChart();
   if (typeof bassCreateChart     === 'function') bassCreateChart();
@@ -538,8 +542,8 @@ function drawEndScreen() {
 
 function calcTotalScore() {
   return (typeof keyboardScore!=='undefined'?keyboardScore:0)+
-         (typeof bassScore    !=='undefined'?bassScore    :0)+
-         (typeof drumScore    !=='undefined'?drumScore    :0);
+         (typeof bassScore    !==`undefined`?bassScore    :0)+
+         (typeof drumScore    !==`undefined`?drumScore    :0);
 }
 function calculateGrade(s) {
   return s>=GRADE_CUTLINE.S?"👑 S":s>=GRADE_CUTLINE.A?"A":s>=GRADE_CUTLINE.B?"B":"C";
@@ -603,11 +607,32 @@ function drawButton(btn) {
   text(btn.label,btn.x+btn.w/2,btn.y+btn.h/2); pop();
 }
 
-function drawSessionIndicator(name) {
-  push(); rectMode(CENTER); fill(0,0,0,150); stroke(0,230,255,100); strokeWeight(1);
-  rect(width/2,50,340,35,8); noStroke(); fill(0,230,255);
-  textAlign(CENTER,CENTER); textSize(16); textStyle(BOLD);
-  text(`${name}  [${selectedSpeed}x]`,width/2,50); pop();
+// ▼ 병합된 다음 세션(NEXT) 표시기능 ▼
+function drawSessionIndicator(name, nextName) {
+  push(); 
+  rectMode(CENTER); 
+  fill(0, 0, 0, 180); 
+  stroke(0, 230, 255, 100); 
+  strokeWeight(1);
+  
+  rect(width / 2, 55, 340, 55, 8); 
+  noStroke(); 
+  
+  fill(0, 230, 255);
+  textAlign(CENTER, CENTER); 
+  textSize(16); 
+  textStyle(BOLD);
+  text(`${name} [${selectedSpeed}x]`, width / 2, 42); 
+  
+  textSize(13);
+  if (nextName === "FINISH") {
+    fill(150, 160, 180);
+    text(`>> NEXT : FINISH <<`, width / 2, 65);
+  } else {
+    fill(255, 160, 50); 
+    text(`>> NEXT : ${nextName} <<`, width / 2, 65);
+  }
+  pop();
 }
 
 function drawMasterOverlay() {
