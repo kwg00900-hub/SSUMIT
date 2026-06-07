@@ -967,7 +967,9 @@ function mousePressed() {
 
 function keyPressed() {
   if(keyCode===ESCAPE){togglePause();return false;}
-  if(key==='f'||key==='F'){fullscreen(!fullscreen());return;}
+  let currentSessionType = null;
+  for(let i=0;i<SESSION_ORDER.length;i++){let s=SESSION_TIMELINE[SESSION_ORDER[i].key];if(globalSongTime>=s.start&&globalSongTime<s.end){currentSessionType=SESSION_ORDER[i].type;break;}}
+  if((key === 'f' || key === 'F') && currentSessionType !== "DRUM"){fullscreen(!fullscreen());return;}
   if(isPaused||screenState!=='game') return;
   let type=null;
   for(let i=0;i<SESSION_ORDER.length;i++){
