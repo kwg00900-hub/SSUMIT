@@ -484,7 +484,7 @@ function drawSelectScreen() {
 
   // 🥁 하이햇 토글 렌더링
   let hhBtn = selectButtons.hihat;
-  let hhBgColor = window.globalIsHihatRemoved ? color(255, 80, 80) : color(0, 200, 255);
+  let hhBgColor = window.globalIsHihatRemoved ? color(0, 200, 255) : color(255, 80, 80);
   drawSelectBtn(hhBtn, hhBgColor, color(0, 0, 0));
 
   drawSelectBtn(selectButtons.play, color(0, 200, 255), color(0, 0, 0));
