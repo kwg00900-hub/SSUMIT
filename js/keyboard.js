@@ -17,7 +17,7 @@ let keyboardJudgeLine;
 let keyboardFont; 
 let keyboardIsGameStarted = false; 
 
-let keyboardJumpStartTime = 0;       
+let keyboardJumpStartTime = 0;       f
 let keyboardTargetStartTimeSec = 0;  
 
 // ============================================
@@ -835,12 +835,12 @@ function keyboardHandleInput(lane) {
     if (minTimeDiff <= maxPerfectWindow) {
       judgment = 'PERFECT';
       effectColor = [255, 255, 100];
-      scoreGain = 1000;
+      scoreGain = 50;
       keyboardCombo++;
     } else {
       judgment = 'GREAT';
       effectColor = [255, 220, 0]; // 베이스와 동일한 노란/주황빛 계열
-      scoreGain = 500;
+      scoreGain = 25;
       keyboardCombo++;
     }
     
