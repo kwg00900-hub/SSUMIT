@@ -174,15 +174,18 @@ function preload() {
 function setup() {
   createCanvas(windowWidth, windowHeight);
   mainCapture = createCapture(VIDEO);
-  mainCapture.size(400, 150);
+  
+  // 찌부 방지를 위해 세로를 225(16:9 비율)로 변경합니다.
+  mainCapture.size(400, 225); 
   mainCapture.hide();
-  mainPrevFrame = createImage(400, 150);
+  
+  // 예비 프레임 배열도 동일하게 맞춥니다.
+  mainPrevFrame = createImage(400, 225); 
 
   if (typeof keyboardSetup === 'function') keyboardSetup();
   if (typeof bassSetup     === 'function') bassSetup();
   if (typeof drumSetup     === 'function') drumSetup();
 
-  // 🔊 볼륨 슬라이더 초기화 (최소 -20, 최대 20, 기본값 0, 간격 1)
   volumeSlider = createSlider(-20, 20, 0, 1);
   volumeSlider.style('cursor', 'pointer');
 
@@ -325,6 +328,22 @@ function draw() {
     }
     if (idx !== -1) {
       let cs = SESSION_ORDER[idx], csd = SESSION_TIMELINE[cs.key];
+      
+      // 🔄 [추가] 세션 간 콤보 실시간 동기화 (이어하기 버그 수정)
+      if (cs.type === "KEYBOARD") {
+        let currentCombo = (typeof keyboardCombo !== 'undefined') ? keyboardCombo : 0;
+        if (typeof bassCombo !== 'undefined') bassCombo = currentCombo;
+        if (typeof drumCombo !== 'undefined') drumCombo = currentCombo;
+      } else if (cs.type === "BASS") {
+        let currentCombo = (typeof bassCombo !== 'undefined') ? bassCombo : 0;
+        if (typeof keyboardCombo !== 'undefined') keyboardCombo = currentCombo;
+        if (typeof drumCombo !== 'undefined') drumCombo = currentCombo;
+      } else if (cs.type === "DRUM") {
+        let currentCombo = (typeof drumCombo !== 'undefined') ? drumCombo : 0;
+        if (typeof keyboardCombo !== 'undefined') keyboardCombo = currentCombo;
+        if (typeof bassCombo !== 'undefined') bassCombo = currentCombo;
+      }
+
       if (idx > 0) {
         let gpe = csd.start + FOUR_BEATS_MS;
         if (globalSongTime >= gpe && !motionSuccessList[cs.key]) { triggerGameOver(); return; }
@@ -490,6 +509,13 @@ function startEnsembleGame() {
   if (masterBgm) masterBgm.stop();
   masterBgm = loadSound(song.file, () => {
     masterBgm.rate(selectedSpeed);
+    
+    // 🔊 [추가] 곡이 로드되는 순간 현재 슬라이더 볼륨(dB)을 즉시 적용
+    if (volumeSlider) {
+      let dbValue = volumeSlider.value();
+      masterBgm.amp(pow(10, dbValue / 20));
+    }
+    
     masterBgm.play();
   });
 
@@ -686,27 +712,185 @@ function drawHelpPopup() {
 }
 
 function drawPageTurnOverlay(targetTime, currentSessionKey) {
-  if(motionSuccessList[currentSessionKey]) return;
+  if (motionSuccessList[currentSessionKey]) return;
+  
   push();
-  translate(width/2,height/2); rectMode(CENTER);
-  fill(0,0,0,140); stroke(255,50,50); strokeWeight(3); rect(0,0,500,320,15);
-  noStroke(); fill(255,200,0); textAlign(CENTER,CENTER); textSize(22); textStyle(BOLD);
-  text("⚠️ SWIPE HAND TO TURN PAGE! ⚠️",0,-130);
-  let tl=targetTime-globalSongTime, bc=Math.ceil(tl/ONE_BEAT_MS);
-  if(bc>0&&bc<=4){textSize(55);fill(255,50,50);text(bc,0,-80);}
-  push(); scale(-1,1); imageMode(CENTER); image(mainCapture,0,40,360,135); pop();
-  let lx=-130,rx=130,cy=40;
-  let rH=checkMainMotion(80,95,25),lH=checkMainMotion(320,95,25),now=millis();
-  if(rH&&!rightCircleTriggered&&now-rightTriggerTime>300){rightCircleTriggered=true;rightTriggerTime=now;}
-  if(rightCircleTriggered&&now-rightTriggerTime>1000) rightCircleTriggered=false;
-  let gap=now-rightTriggerTime;
-  if(rightCircleTriggered&&lH&&gap>=150&&gap<=1000){motionSuccessList[currentSessionKey]=true;rightCircleTriggered=false;}
-  strokeWeight(4); noFill();
-  stroke(rightCircleTriggered?color(0,255,100):rH?color(0,255,100):color(255,50,50)); circle(rx,cy,50);
-  stroke(motionSuccessList[currentSessionKey]?color(0,255,100):rightCircleTriggered?color(0,200,255):color(150)); circle(lx,cy,50);
-  noStroke(); fill(255); textSize(13);
-  text("1. RIGHT START",rx,cy+45); text("2. LEFT END (IN 1s)",lx,cy+45);
-  mainPrevFrame.copy(mainCapture,0,0,400,150,0,0,400,150);
+  translate(width / 2, height / 2);
+  rectMode(CENTER);
+  
+  // ---------------------------------------------------
+  // 1. 미니멀 글래스모피즘 컨테이너 (560 x 430)
+  // ---------------------------------------------------
+  let w = 560;
+  let h = 430;
+  
+  // 미니멀한 네온 라인 매젠타 글로우
+  drawingContext.shadowBlur = 25;
+  drawingContext.shadowColor = 'rgba(255, 0, 127, 0.4)';
+  
+  fill(5, 6, 12, 235); // 공백 감각을 극대화한 오프블랙 배경
+  stroke(255, 0, 127, 180); // 세련된 네온 매젠타 엣지
+  strokeWeight(1);
+  rect(0, 0, w, h, 4); // 미니멀리즘을 위해 라운드 값을 줄임
+  drawingContext.shadowBlur = 0; // 즉시 리셋으로 렌더링 최적화
+  
+  // ---------------------------------------------------
+  // 2. 정제된 미니멀 HUD 타이포그래피
+  // ---------------------------------------------------
+  noStroke();
+  textAlign(CENTER, CENTER);
+  
+  // 상단 서브 액센트 타이틀
+  fill(255, 0, 127);
+  textSize(11);
+  textStyle(BOLD);
+  text("C R I T I C A L   A L E R T", 0, -175);
+  
+  // 메인 인스트럭션 타이틀
+  fill(255, 255, 255);
+  textSize(18);
+  textStyle(NORMAL); // 두꺼운 폰트 대신 얇고 모던한 서체 스타일 유지
+  text("SWIPE TO TURN PAGE", 0, -145);
+  
+  // ---------------------------------------------------
+  // 3. 네온 아크 & 미니멀 카운트다운 (상단 유기적 배치)
+  // ---------------------------------------------------
+  let tl = targetTime - globalSongTime;
+  let bc = Math.ceil(tl / ONE_BEAT_MS);
+  
+  if (bc > 0 && bc <= 4) {
+    let cy = -95;
+    // 얇은 가이드 링
+    noFill();
+    stroke(255, 255, 255, 20);
+    strokeWeight(1);
+    circle(0, cy, 50);
+    
+    // 진행도에 맞춰 줄어드는 미니멀 사이언 호
+    stroke(0, 229, 255);
+    strokeWeight(2);
+    let angle = map(tl % ONE_BEAT_MS, 0, ONE_BEAT_MS, 0, TWO_PI);
+    arc(0, cy, 50, 50, -HALF_PI, -HALF_PI + angle);
+    
+    // 카운트다운 숫자
+    noStroke();
+    fill(0, 229, 255);
+    textSize(22);
+    textStyle(BOLD);
+    text(bc, 0, cy - 1);
+  }
+  
+  // ---------------------------------------------------
+  // 4. 왜곡 없는 16:9 미러 웹캠 뷰 (360 x 202.5 스케일 다운)
+  // ---------------------------------------------------
+  let camW = 360;
+  let camH = 202.5;
+  let camY = 35;
+  
+  push();
+  scale(-1, 1);
+  imageMode(CENTER);
+  image(mainCapture, 0, camY, camW, camH);
+  pop();
+  
+  // 웹캠을 감싸는 미니멀 시안 외곽선
+  noFill();
+  stroke(0, 229, 255, 60);
+  strokeWeight(1);
+  rect(0, camY, camW, camH);
+  
+  // ---------------------------------------------------
+  // 5. 모션 센서 노드 (타이밍 및 예외 처리 로직 수정완료)
+  // ---------------------------------------------------
+  let lx = -120, rx = 120, nodeY = 35;
+  
+  // 정밀 계산된 16:9 비율 픽셀 매핑 연산
+  let rH = checkMainMotion(67, 112, 25);
+  let lH = checkMainMotion(333, 112, 25);
+  let now = millis();
+  
+  // [수정] 1단계 재트리거 제한을 300ms -> 400ms로 늘려 안정성 확보
+  if (rH && !rightCircleTriggered && now - rightTriggerTime > 400) {
+    rightCircleTriggered = true;
+    rightTriggerTime = now;
+  }
+  
+  // [수정] 제한시간을 1500ms로 약간 늘리고, 만료 시 rightTriggerTime을 현재로 동기화
+  // 이 처리를 안 해주면 손이 오른쪽 노드에 머물 때 연속으로 오작동(무한 트리거)이 일어납니다.
+  if (rightCircleTriggered && now - rightTriggerTime > 1500) {
+    rightCircleTriggered = false;
+    rightTriggerTime = now; // 쿨다운 앵커 추가
+  }
+  
+  let gap = now - rightTriggerTime;
+  
+  // [수정] 아주 빠른 스와이프도 인식하도록 최소 타임갭 제한 완화 (150ms -> 50ms)
+  if (rightCircleTriggered && lH && gap >= 50 && gap <= 1500) {
+    motionSuccessList[currentSessionKey] = true;
+    rightCircleTriggered = false;
+  }
+  
+  // 🟢 [오른쪽 START 노드 UI]
+  let rColor = rightCircleTriggered ? color(0, 255, 150) : rH ? color(0, 255, 150) : color(255, 0, 127);
+  push();
+  if (rightCircleTriggered || rH) {
+    drawingContext.shadowBlur = 20;
+    drawingContext.shadowColor = rColor;
+  }
+  noFill();
+  stroke(rColor);
+  strokeWeight(1.5);
+  circle(rx, nodeY, 50); // 헤어라인 바깥 고리
+  
+  // 핵심 코어 포인트
+  fill(red(rColor), green(rColor), blue(rColor), rightCircleTriggered ? 200 : 40);
+  noStroke();
+  circle(rx, nodeY, rightCircleTriggered ? 24 : 14);
+  pop();
+  
+  // 🔵 [왼쪽 END 노드 UI]
+  let lColor = motionSuccessList[currentSessionKey] ? color(0, 255, 150) : rightCircleTriggered ? color(0, 229, 255) : color(255, 255, 255, 40);
+  push();
+  if (rightCircleTriggered) {
+    drawingContext.shadowBlur = 20;
+    drawingContext.shadowColor = lColor;
+  }
+  noFill();
+  stroke(lColor);
+  strokeWeight(1.5);
+  circle(lx, nodeY, 50);
+  
+  fill(red(lColor), green(lColor), blue(lColor), rightCircleTriggered ? 180 : 30);
+  noStroke();
+  circle(lx, nodeY, rightCircleTriggered ? 24 : 14);
+  pop();
+  
+  // ---------------------------------------------------
+  // 6. 하단 미니멀 가이드 스트립
+  // ---------------------------------------------------
+  noStroke();
+  textStyle(BOLD);
+  textSize(11);
+  
+  fill(rightCircleTriggered ? color(0, 255, 150) : color(255, 0, 127, 200));
+  text("01 // START", rx, nodeY + 45);
+  
+  fill(motionSuccessList[currentSessionKey] ? color(0, 255, 150) : rightCircleTriggered ? color(0, 229, 255) : color(255, 255, 255, 80));
+  text("02 // ACTION", lx, nodeY + 45);
+  
+  // 상태 변경 안내 서브 텍스트
+  fill(140, 145, 160);
+  textStyle(NORMAL);
+  textSize(12);
+  if (rightCircleTriggered) {
+    fill(0, 229, 255);
+    text("READY: SWIPE HAND LEFT IMMEDIATELY", 0, 175);
+  } else {
+    fill(100, 105, 120);
+    text("INTERACTION: GESTURE RIGHT TO LEFT TO FLIP SHEET", 0, 175);
+  }
+  
+  mainPrevFrame.copy(mainCapture, 0, 0, 400, 225, 0, 0, 400, 225);
   pop();
 }
 
@@ -783,9 +967,8 @@ function mousePressed() {
 
 function keyPressed() {
   if(keyCode===ESCAPE){togglePause();return false;}
-let currentSessionType = null;
-for(let i=0;i<SESSION_ORDER.length;i++){let s=SESSION_TIMELINE[SESSION_ORDER[i].key];if(globalSongTime>=s.start&&globalSongTime<s.end){currentSessionType=SESSION_ORDER[i].type;break;}}
-  if((key === 'f' || key === 'F') && currentSessionType !== "DRUM"){fullscreen(!fullscreen());return;}  if(isPaused||screenState!=='game') return;
+  if(key==='f'||key==='F'){fullscreen(!fullscreen());return;}
+  if(isPaused||screenState!=='game') return;
   let type=null;
   for(let i=0;i<SESSION_ORDER.length;i++){
     let s=SESSION_TIMELINE[SESSION_ORDER[i].key];
@@ -814,28 +997,23 @@ function keyReleased() {
 function handleVolumeSlider() {
   if (!volumeSlider) return;
 
+  // 🔊 [수정] 플레이 여부와 관계없이 슬라이더의 데시벨(dB) 값을 진폭으로 변환하여 항상 오디오에 적용합니다.
+  let dbValue = volumeSlider.value();
+  let amplitude = pow(10, dbValue / 20);
+  if (masterBgm) {
+    masterBgm.amp(amplitude);
+  }
+
   // 순수 실시간 게임 플레이 중인 조건 정의
-  // (게임 화면이면서 일시정지, 게임오버, 게임엔드 상태가 모두 아닐 때)
   let isPlayingLive = (screenState === 'game' && !isPaused && !isGameOver && !isGameEnded);
 
   if (isPlayingLive) {
-    // 1. 실제 연주 중에는 슬라이더를 숨깁니다.
+    // 1. 실제 연주 중에는 슬라이더만 숨깁니다.
     volumeSlider.hide();
   } else {
-    // 2. 그 외 모든 대기/정지 화면에서는 슬라이더를 보여줍니다.
+    // 2. 그 외 모든 대기/정지 화면에서는 슬라이더를 보여주고 가이드 텍스트를 출력합니다.
     volumeSlider.show();
 
-    // 3. 데시벨(dB) 값을 p5.sound 진폭(Amplitude)으로 변환
-    // 공식: Amplitude = 10 ^ (dB / 20)
-    // db가 0일 때 1.0(원본), -20일 때 약 0.1(작아짐), +20일 때 10.0(커짐)
-    let dbValue = volumeSlider.value();
-    let amplitude = pow(10, dbValue / 20);
-
-    if (masterBgm) {
-      masterBgm.amp(amplitude);
-    }
-
-    // 4. 슬라이더 바로 위에 현재 설정된 dB 값을 텍스트로 출력
     push();
     noStroke();
     fill(160, 170, 190);
