@@ -11,6 +11,7 @@ let isGameEnded    = false;
 let isGameOver     = false;
 let isPaused       = false;
 let volumeSlider;
+let globalMaxCombo = 0;
 
 // 화면 상태: 'start' | 'select' | 'game'
 let screenState = 'start';
@@ -32,7 +33,14 @@ const SPEED_OPTIONS = [0.5, 0.75, 1.0, 1.25, 1.5];
 const SPEED_LABELS  = ['0.5x', '0.75x', '1.0x', '1.25x', '1.5x'];
 
 // 🏆 등급 컷라인
-const GRADE_CUTLINE = { S: 15000, A: 10000, B: 5000 };
+const GRADE_CUTLINE = {
+  S: 38514,
+  A: 35370,
+  B: 31440,
+  C: 27510,
+  D: 23580,
+  E: 19650
+};
 
 // ============================================
 // 🎵 곡 목록 정의
@@ -396,19 +404,22 @@ function draw() {
     if (idx !== -1) {
       let cs = SESSION_ORDER[idx], csd = SESSION_TIMELINE[cs.key];
       
-      // 콤보 동기화
+      // 🏆 콤보 동기화 및 최고 콤보 갱신 로직
       if (cs.type === "KEYBOARD") {
         let currentCombo = (typeof keyboardCombo !== 'undefined') ? keyboardCombo : 0;
         if (typeof bassCombo !== 'undefined') bassCombo = currentCombo;
         if (typeof drumCombo !== 'undefined') drumCombo = currentCombo;
+        if (currentCombo > globalMaxCombo) globalMaxCombo = currentCombo; 
       } else if (cs.type === "BASS") {
         let currentCombo = (typeof bassCombo !== 'undefined') ? bassCombo : 0;
         if (typeof keyboardCombo !== 'undefined') keyboardCombo = currentCombo;
         if (typeof drumCombo !== 'undefined') drumCombo = currentCombo;
+        if (currentCombo > globalMaxCombo) globalMaxCombo = currentCombo; 
       } else if (cs.type === "DRUM") {
         let currentCombo = (typeof drumCombo !== 'undefined') ? drumCombo : 0;
         if (typeof keyboardCombo !== 'undefined') keyboardCombo = currentCombo;
         if (typeof bassCombo !== 'undefined') bassCombo = currentCombo;
+        if (currentCombo > globalMaxCombo) globalMaxCombo = currentCombo; 
       }
 
       if (idx > 0) {
@@ -584,6 +595,7 @@ function startEnsembleGame() {
   isPaused    = false;
   screenState = 'game'; 
   globalSongTime = 0;
+  globalMaxCombo = 0;
   motionSuccessList = {};
   for (let i = 1; i < SESSION_ORDER.length; i++) motionSuccessList[SESSION_ORDER[i].key] = false;
   rightCircleTriggered = false;
@@ -629,9 +641,14 @@ function drawEndScreen() {
   textSize(width*0.05); fill('#00E5FF');
   drawingContext.shadowBlur=20; drawingContext.shadowColor='rgba(0,229,255,0.6)';
   text("STAGE CLEAR", width/2, height*0.2); pop();
+  
   push(); textAlign(CENTER,CENTER);
   textSize(width*0.025); fill(241,245,249);
-  text("FINAL SCORE : "+total.toLocaleString(), width/2, height*0.35);
+  text("FINAL SCORE : "+total.toLocaleString(), width/2, height*0.33);
+  
+  textSize(width*0.02); fill(255,215,0); 
+  text("MAX COMBO : " + globalMaxCombo, width/2, height*0.38); 
+  
   textSize(width*0.07); textStyle(BOLD); fill('#00E5FF');
   drawingContext.shadowBlur=25; drawingContext.shadowColor='rgba(0,229,255,0.7)';
   text(grade, width/2, height*0.48); pop();
@@ -644,7 +661,13 @@ function calcTotalScore() {
          (typeof drumScore    !==`undefined`?drumScore    :0);
 }
 function calculateGrade(s) {
-  return s>=GRADE_CUTLINE.S?"👑 S":s>=GRADE_CUTLINE.A?"A":s>=GRADE_CUTLINE.B?"B":"C";
+  if (s >= GRADE_CUTLINE.S) return "👑 S";
+  if (s >= GRADE_CUTLINE.A) return "A";
+  if (s >= GRADE_CUTLINE.B) return "B";
+  if (s >= GRADE_CUTLINE.C) return "C";
+  if (s >= GRADE_CUTLINE.D) return "D";
+  if (s >= GRADE_CUTLINE.E) return "E";
+  return "F"; // 19649 이하
 }
 
 function drawCredits() {
@@ -755,11 +778,16 @@ function drawMasterOverlay() {
   if(type==="KEYBOARD") combo=typeof keyboardCombo!=='undefined'?keyboardCombo:0;
   else if(type==="BASS") combo=typeof bassCombo!=='undefined'?bassCombo:0;
   else if(type==="DRUM") combo=typeof drumCombo!=='undefined'?drumCombo:0;
+  
   push(); textAlign(RIGHT,TOP); textSize(18); textStyle(BOLD); fill(255,255,255,160);
   text(`SCORE: ${total.toLocaleString()}`,width-30,20);
-  textSize(15); fill(0,230,255); text(`COMBO: ${combo}`,width-30,48);
+  
+  textSize(15); fill(0,230,255); 
+  text(`COMBO: ${combo}  |  MAX: ${globalMaxCombo}`,width-30,48); 
+  
   textSize(12); textStyle(NORMAL); fill(150);
-  text(`TIME: ${(globalSongTime/1000).toFixed(1)} / ${(SESSION_TIMELINE.DRUM4.end/1000).toFixed(0)}s`,width-30,75); pop();
+  text(`TIME: ${(globalSongTime/1000).toFixed(1)} / ${(SESSION_TIMELINE.DRUM4.end/1000).toFixed(0)}s`,width-30,75); 
+  pop();
 }
 
 function drawPauseHint() {
