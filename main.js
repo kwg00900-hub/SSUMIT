@@ -1,5 +1,6 @@
 // ===================================================
-// main.js — 시작화면 → 곡선택화면 → 게임
+// main.js — 통합 최종 버전 
+// (시작 즉시 실행 + 일시정지 카운트다운 + 드럼 하이햇 제거 기능)
 // ===================================================
 
 let masterBgm;
@@ -16,6 +17,14 @@ let screenState = 'start';
 
 // ⏸️ 일시정지
 let pausedTime = 0;
+
+// ⏱️ 카운트다운 상태 변수
+let isCountingDown = false;
+let countdownStartTime = 0;
+let countdownVal = 3;
+
+// 🥁 드럼 하이햇 제거 기능 전역 상태 (drum.js 등에서 활용 가능)
+window.globalIsHihatRemoved = false;
 
 // 🎚️ 배속
 let selectedSpeed = 1.0;
@@ -53,13 +62,12 @@ const SONG_LIST = [
   },
   {
     id:       'song2',
-    file:     'dance_dance.mp3',   // ← 파일명 확정 후 교체
+    file:     'dance_dance.mp3',
     title:    'Dance Dance',
     subtitle: 'DAY6',
     bpm:      152,
     sessions: ['🎹 KEYBOARD', '🎸 BASS', '🥁 DRUM'],
     timeline: {
-      // ⚠️ 타임라인 미정 — 확정 후 아래 값을 실제 ms로 교체하세요
       KEYBOARD1: { start: 0,     end: 15000  },
       BASS1:     { start: 15000, end: 30000  },
       DRUM1:     { start: 30000, end: 45000  },
@@ -76,13 +84,7 @@ const SONG_LIST = [
   }
 ];
 
-// 현재 선택된 곡 인덱스
 let selectedSongIdx = 0;
-
-// 🥁 Drum Expert 모드 (true=Hihat/Ride 포함, false=제외)
-let drumExpertOn = true;
-
-// 배속 적용 후 실제 타임라인
 let SESSION_TIMELINE = {};
 
 const SESSION_ORDER = [
@@ -104,39 +106,35 @@ let BPM = 126;
 let ONE_BEAT_MS;
 let FOUR_BEATS_MS;
 
-// 🔘 시작화면 버튼
 let uiButtons = {
   start: { x: 0, y: 0, w: 240, h: 55, label: "START GAME" },
   help:  { x: 0, y: 0, w: 240, h: 55, label: "HOW TO PLAY" },
   full:  { x: 0, y: 0, w: 140, h: 40, label: "FULLSCREEN"  }
 };
 
-// 🔘 곡선택 화면 버튼
 let selectButtons = {
-  play: { x: 0, y: 0, w: 220, h: 55, label: "▶  PLAY" },
-  back: { x: 0, y: 0, w: 120, h: 42, label: "← BACK"  }
+  play:  { x: 0, y: 0, w: 220, h: 55, label: "▶  PLAY" },
+  back:  { x: 0, y: 0, w: 120, h: 42, label: "← BACK"  },
+  hihat: { x: 0, y: 0, w: 180, h: 42, label: "🥁 HI-HAT: INCLUDED" } // 하이햇 토글 버튼 추가
 };
-let speedButtons = [];  // 배속 버튼
-let songCardRects = []; // 곡 카드 클릭 영역
+let speedButtons = [];  
+let songCardRects = []; 
 
-// 🔘 결과/게임오버 DOM 버튼
 let restartBtn;
-
 let mainCapture;
 let mainPrevFrame;
 let rightCircleTriggered = false;
 let rightTriggerTime     = 0;
 let motionSuccessList    = {};
+let imgBassSSU, imgDrumSSU;
 
 // ============================================
-// 🔧 배속 적용 (수정본)
+// 🔧 배속 및 설정 적용
 // ============================================
 function applySpeed(speed) {
   selectedSpeed = speed;
   let base = SONG_LIST[selectedSongIdx].timeline;
 
-  // 1. 타임라인은 원본 곡 기준 시간을 그대로 유지해야 합니다.
-  // masterBgm.currentTime()이 배속에 맞춰 이미 빠르게 흐르기 때문입니다.
   for (let key in base) {
     SESSION_TIMELINE[key] = {
       start: base[key].start,
@@ -144,19 +142,13 @@ function applySpeed(speed) {
     };
   }
 
-  // 2. BPM과 비트당 시간(ms)도 원본 기준을 유지해야
-  // 곡 내부 시간 축으로 흐르는 globalSongTime과 박자가 완벽히 일치합니다.
   BPM           = SONG_LIST[selectedSongIdx].bpm;
   ONE_BEAT_MS   = (60 / BPM) * 1000;
   FOUR_BEATS_MS = ONE_BEAT_MS * 4;
 
-  // 3. 하위 세션(건반, 베이스) 스크립트에서 혹시 '시각적 박자 연출'을 위해 
-  // 실제 프레임 속도가 필요한 경우에만 배속 정보를 따로 넘겨줍니다.
   if (typeof keyboardSetGameBPM === 'function') keyboardSetGameBPM(BPM * speed);
   if (typeof bassSetGameBPM     === 'function') bassSetGameBPM(BPM * speed);
-  // if (typeof drumSONG_BPM !== 'undefined') drumSONG_BPM = BPM * speed;
   
-  // 4. 스크롤 속도 조절 (주의점 참고)
   if (typeof keyboardSCROLL_SPEED !== 'undefined') keyboardSCROLL_SPEED = (windowHeight * 0.6);
   if (typeof bassSCROLL_SPEED     !== 'undefined') bassSCROLL_SPEED     = (windowHeight * 0.6);
 }
@@ -166,7 +158,6 @@ function applySpeed(speed) {
 // ============================================
 function preload() {
   masterBgm = loadSound(SONG_LIST[0].file);
-
   imgBassSSU = loadImage('assets/bass_ssu.png');
   imgDrumSSU = loadImage('assets/drum_ssu.png');
   
@@ -178,12 +169,9 @@ function preload() {
 function setup() {
   createCanvas(windowWidth, windowHeight);
   mainCapture = createCapture(VIDEO);
-  
-  // 찌부 방지를 위해 세로를 225(16:9 비율)로 변경합니다.
   mainCapture.size(400, 225); 
   mainCapture.hide();
   
-  // 예비 프레임 배열도 동일하게 맞춥니다.
   mainPrevFrame = createImage(400, 225); 
 
   if (typeof keyboardSetup === 'function') keyboardSetup();
@@ -211,23 +199,25 @@ function updateUIElements() {
   uiButtons.full.x  = width - 170;
   uiButtons.full.y  = 20;
 
-  // PLAY / BACK 버튼
-  selectButtons.play.x = width / 2 - 110;
-  selectButtons.play.y = height * 0.85;
-  selectButtons.back.x = 40;
-  selectButtons.back.y = 30;
+  selectButtons.play.x  = width / 2 - 110;
+  selectButtons.play.y  = height * 0.85;
+  selectButtons.back.x  = 40;
+  selectButtons.back.y  = 30;
+  
+  // 하이햇 토글 버튼 위치 (PLAY 버튼 바로 위)
+  selectButtons.hihat.x = width / 2 - 90;
+  selectButtons.hihat.y = height * 0.85 - 55;
 
   if (volumeSlider) {
     volumeSlider.position(width - 160, height - 35);
-    volumeSlider.size(130); // 슬라이더 가로 길이
+    volumeSlider.size(130);
   }
 
-  // 배속 버튼
   speedButtons = [];
   let bw = 84, bh = 38, gap = 8;
   let totalW = SPEED_OPTIONS.length * bw + (SPEED_OPTIONS.length - 1) * gap;
   let sx = width / 2 - totalW / 2;
-  let sy = height * 0.75;
+  let sy = height * 0.72;
   for (let i = 0; i < SPEED_OPTIONS.length; i++) {
     speedButtons.push({
       x: sx + i * (bw + gap), y: sy,
@@ -236,7 +226,6 @@ function updateUIElements() {
     });
   }
 
-  // 곡 카드 영역 (2개 가로 배열)
   songCardRects = [];
   let cardW = min(380, width * 0.38);
   let cardH = 180;
@@ -282,25 +271,38 @@ function updateButtonPosition() {
 }
 
 // ============================================
-// ⏸️ 일시정지
+// ⏸️ 일시정지 제어
 // ============================================
 function togglePause() {
   if (screenState !== 'game' || isGameEnded || isGameOver) return;
+  
+  // 카운트다운 도중 ESC를 누르면 즉시 다시 정지 상태로 전환
+  if (isCountingDown) {
+    isCountingDown = false;
+    isPaused = true;
+    if (masterBgm && masterBgm.isPlaying()) masterBgm.pause();
+    return;
+  }
+
   isPaused = !isPaused;
   if (isPaused) {
-    if (masterBgm && masterBgm.isPlaying()) { pausedTime = masterBgm.currentTime(); masterBgm.pause(); }
+    if (masterBgm && masterBgm.isPlaying()) { 
+      pausedTime = masterBgm.currentTime(); 
+      masterBgm.pause(); 
+    }
   } else {
-    if (masterBgm) { masterBgm.play(); masterBgm.jump(pausedTime); }
+    // ⏱️ 일시정지 해제할 때만 3-2-1 카운트다운 트리거
+    isCountingDown = true;
+    countdownStartTime = millis();
   }
 }
 
 // ============================================
-// 🖼️ 메인 드로우
+// 🖼️ 메인 드로우 루프
 // ============================================
 function draw() {
   background(15, 23, 42);
   drawBackgroundGrid();
-
   handleVolumeSlider();
 
   if (screenState === 'start') {
@@ -317,6 +319,67 @@ function draw() {
     drawPausedScreen();
   } else {
     restartBtn.hide();
+
+    // ⏱️ 카운트다운(일시정지 해제 시에만) 인터셉터
+    if (isCountingDown) {
+      if (pausedTime > 0) globalSongTime = pausedTime * 1000;
+      else globalSongTime = 0;
+
+      let elapsed = millis() - countdownStartTime;
+      if (elapsed < 1000) {
+        countdownVal = 3;
+      } else if (elapsed < 2000) {
+        countdownVal = 2;
+      } else if (elapsed < 3000) {
+        countdownVal = 1;
+      } else {
+        isCountingDown = false;
+        isSongPlaying = true;
+        if (masterBgm && !masterBgm.isPlaying()) {
+          masterBgm.play();
+          if (pausedTime > 0) {
+            masterBgm.jump(pausedTime);
+            pausedTime = 0; 
+          }
+        }
+      }
+
+      // 배경에 현재 시점 악기와 다가올 노트 정지 상태 렌더링
+      let idx = -1;
+      for (let i = 0; i < SESSION_ORDER.length; i++) {
+        let sd = SESSION_TIMELINE[SESSION_ORDER[i].key];
+        if (globalSongTime >= sd.start && globalSongTime < sd.end) { idx = i; break; }
+      }
+      if (idx === -1) idx = 0;
+
+      let cs = SESSION_ORDER[idx];
+      if      (cs.type === "KEYBOARD" && typeof keyboardDraw === 'function') keyboardDraw();
+      else if (cs.type === "BASS"     && typeof bassDraw     === 'function') bassDraw();
+      else if (cs.type === "DRUM"     && typeof drumDraw     === 'function') drumDraw();
+      
+      let nextName = (idx + 1 < SESSION_ORDER.length) ? SESSION_ORDER[idx + 1].type : "FINISH";
+      drawSessionIndicator(cs.name, nextName);
+      drawMasterOverlay();
+
+      // 화면 중앙 카운트다운 타이포그래피 이펙트
+      push();
+      textAlign(CENTER, CENTER);
+      textSize(width * 0.08);
+      textStyle(BOLD);
+      fill(0, 230, 255);
+      
+      let stageElapsed = elapsed % 1000;
+      let scaleVal = map(stageElapsed, 0, 1000, 1.4, 1.0); 
+      translate(width / 2, height / 2);
+      scale(scaleVal);
+      
+      drawingContext.shadowBlur = 25;
+      drawingContext.shadowColor = 'rgba(0, 229, 255, 0.6)';
+      text(countdownVal, 0, 0);
+      pop();
+      return; 
+    }
+
     if (masterBgm && masterBgm.isPlaying()) globalSongTime = masterBgm.currentTime() * 1000;
 
     if (globalSongTime >= SESSION_TIMELINE.DRUM4.end) {
@@ -333,7 +396,7 @@ function draw() {
     if (idx !== -1) {
       let cs = SESSION_ORDER[idx], csd = SESSION_TIMELINE[cs.key];
       
-      // 🔄 [추가] 세션 간 콤보 실시간 동기화 (이어하기 버그 수정)
+      // 콤보 동기화
       if (cs.type === "KEYBOARD") {
         let currentCombo = (typeof keyboardCombo !== 'undefined') ? keyboardCombo : 0;
         if (typeof bassCombo !== 'undefined') bassCombo = currentCombo;
@@ -352,11 +415,11 @@ function draw() {
         let gpe = csd.start + FOUR_BEATS_MS;
         if (globalSongTime >= gpe && !motionSuccessList[cs.key]) { triggerGameOver(); return; }
       }
+      
       if      (cs.type === "KEYBOARD" && typeof keyboardDraw === 'function') keyboardDraw();
       else if (cs.type === "BASS"     && typeof bassDraw     === 'function') bassDraw();
       else if (cs.type === "DRUM"     && typeof drumDraw     === 'function') drumDraw();
       
-      // ▼ 병합된 다음 세션(NEXT) 인디케이터 기능 ▼
       let nextName = "FINISH";
       if (idx + 1 < SESSION_ORDER.length) {
         nextName = SESSION_ORDER[idx + 1].type;
@@ -377,7 +440,6 @@ function draw() {
 // 🎵 곡 선택 화면
 // ============================================
 function drawSelectScreen() {
-  // 제목
   push();
   textAlign(CENTER, CENTER); textStyle(BOLD); textSize(width * 0.028);
   fill(0, 230, 255);
@@ -385,18 +447,15 @@ function drawSelectScreen() {
   text("SELECT SONG", width / 2, height * 0.1);
   pop();
 
-  // 곡 카드 2개
   for (let i = 0; i < SONG_LIST.length; i++) {
     drawSongCard(i);
   }
 
-  // 배속 레이블
   push();
   textAlign(CENTER, CENTER); textSize(13); textStyle(BOLD); fill(160, 170, 190);
   text("SPEED", width / 2, speedButtons[0].y - 18);
   pop();
 
-  // 배속 버튼
   for (let btn of speedButtons) {
     let isSel = (btn.speed === selectedSpeed);
     let isHov = (mouseX > btn.x && mouseX < btn.x + btn.w && mouseY > btn.y && mouseY < btn.y + btn.h);
@@ -412,10 +471,12 @@ function drawSelectScreen() {
     pop();
   }
 
-  // PLAY 버튼
-  drawSelectBtn(selectButtons.play, color(0, 200, 255), color(0, 0, 0));
+  // 🥁 하이햇 토글 렌더링
+  let hhBtn = selectButtons.hihat;
+  let hhBgColor = window.globalIsHihatRemoved ? color(255, 80, 80) : color(0, 200, 255);
+  drawSelectBtn(hhBtn, hhBgColor, color(0, 0, 0));
 
-  // BACK 버튼
+  drawSelectBtn(selectButtons.play, color(0, 200, 255), color(0, 0, 0));
   drawSelectBtn(selectButtons.back, color(60, 70, 90), color(200, 210, 220));
 }
 
@@ -427,7 +488,6 @@ function drawSongCard(i) {
 
   push();
   rectMode(CORNER);
-  // 선택된 곡은 테두리 강조
   if (isSel) {
     fill(22, 40, 70);
     stroke(0, 200, 255); strokeWeight(2.5);
@@ -439,7 +499,6 @@ function drawSongCard(i) {
   }
   rect(r.x, r.y, r.w, r.h, 14);
 
-  // 선택 표시 뱃지
   if (isSel) {
     noStroke(); fill(0, 200, 255);
     rect(r.x, r.y, 60, 24, 14, 0, 0, 0);
@@ -447,25 +506,20 @@ function drawSongCard(i) {
     text("SELECTED", r.x + 30, r.y + 12);
   }
 
-  // 곡 제목
   noStroke(); textAlign(LEFT, TOP); textStyle(BOLD);
   textSize(18); fill(isSel ? color(0, 220, 255) : color(220, 230, 245));
   text(song.title, r.x + 18, r.y + 34);
 
-  // 아티스트
   textSize(12); textStyle(NORMAL); fill(isSel ? color(120, 200, 255) : color(140, 155, 180));
   text(song.subtitle, r.x + 18, r.y + 60);
 
-  // 구분선
   stroke(40, 60, 90); strokeWeight(1);
   line(r.x + 18, r.y + 82, r.x + r.w - 18, r.y + 82);
 
-  // BPM 및 세션 뱃지
   noStroke(); textAlign(LEFT, TOP); textSize(11); textStyle(BOLD);
   fill(isSel ? color(0, 200, 255) : color(100, 130, 170));
   text(`♩ ${song.bpm} BPM`, r.x + 18, r.y + 92);
 
-  // 세션 아이콘
   let bx = r.x + 18;
   let badgeColors = [color(0,150,220,50), color(220,100,0,50), color(80,200,100,50)];
   let textColors  = [color(0,200,255), color(255,160,60), color(120,240,140)];
@@ -476,36 +530,11 @@ function drawSongCard(i) {
     bx += 88;
   }
 
-  // 미정 워터마크 (song2 타임라인 미확정)
   if (song.id === 'song2') {
     textAlign(RIGHT, BOTTOM); textSize(10); textStyle(NORMAL);
     fill(180, 100, 60, 180);
     text("⚠ 타임라인 미정", r.x + r.w - 12, r.y + r.h - 8);
   }
-
-  // 🥁 DRUM EXPERT 토글 버튼 (카드 우하단)
-  let exBtnW = 120, exBtnH = 26;
-  let exBtnX = r.x + r.w - exBtnW - 12;
-  let exBtnY = r.y + r.h - exBtnH - 10;
-  let exHov  = (mouseX > exBtnX && mouseX < exBtnX + exBtnW &&
-                mouseY > exBtnY && mouseY < exBtnY + exBtnH);
-  push();
-  rectMode(CORNER);
-  // 배경
-  if (drumExpertOn) {
-    fill(255, 80, 50, exHov ? 220 : 180);
-    stroke(255, 120, 80); strokeWeight(1.5);
-  } else {
-    fill(30, 40, 60, exHov ? 220 : 180);
-    stroke(80, 100, 140); strokeWeight(1);
-  }
-  rect(exBtnX, exBtnY, exBtnW, exBtnH, 5);
-  // 라벨
-  noStroke(); textAlign(CENTER, CENTER); textStyle(BOLD); textSize(10);
-  fill(drumExpertOn ? color(255, 255, 255) : color(140, 160, 190));
-  text("DRUM EXPERT: " + (drumExpertOn ? "ON" : "OFF"), exBtnX + exBtnW / 2, exBtnY + exBtnH / 2);
-  pop();
-
   pop();
 }
 
@@ -522,33 +551,39 @@ function drawSelectBtn(btn, bgCol, txtCol) {
     stroke(255,255,255,30); strokeWeight(1);
   }
   rect(btn.x, btn.y, btn.w, btn.h, 8);
-  noStroke(); textAlign(CENTER, CENTER); textStyle(BOLD); textSize(15); fill(txtCol);
+  noStroke(); textAlign(CENTER, CENTER); textStyle(BOLD); textSize(14); fill(txtCol);
   text(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
   pop();
 }
 
 // ============================================
-// 🎮 게임 시작
+// 🎮 게임 시작 및 데이터 로드
 // ============================================
 function startEnsembleGame() {
   applySpeed(selectedSpeed);
   let song = SONG_LIST[selectedSongIdx];
 
   if (masterBgm) masterBgm.stop();
+  pausedTime = 0; 
+
+  // ⏱️ 초기 시작 시에는 카운트다운 없이 즉시 진행
+  isCountingDown = false; 
+
   masterBgm = loadSound(song.file, () => {
     masterBgm.rate(selectedSpeed);
     
-    // 🔊 [추가] 곡이 로드되는 순간 현재 슬라이더 볼륨(dB)을 즉시 적용
     if (volumeSlider) {
       let dbValue = volumeSlider.value();
       masterBgm.amp(pow(10, dbValue / 20));
     }
     
+    isSongPlaying = true;
     masterBgm.play();
   });
 
-  isSongPlaying = true; isPaused = false;
-  screenState   = 'game'; globalSongTime = 0;
+  isPaused    = false;
+  screenState = 'game'; 
+  globalSongTime = 0;
   motionSuccessList = {};
   for (let i = 1; i < SESSION_ORDER.length; i++) motionSuccessList[SESSION_ORDER[i].key] = false;
   rightCircleTriggered = false;
@@ -557,9 +592,13 @@ function startEnsembleGame() {
   if (typeof bassScore     !== 'undefined') { bassScore     = 0; bassCombo      = 0; }
   if (typeof drumScore     !== 'undefined') { drumScore     = 0; drumCombo      = 0; }
 
+  // 외부 드럼 파일에 상태 연동 함수가 있다면 호출
+  if (typeof drumSetHihatState === 'function') {
+    drumSetHihatState(window.globalIsHihatRemoved);
+  }
+
   if (typeof keyboardCreateChart === 'function') keyboardCreateChart();
   if (typeof bassCreateChart     === 'function') bassCreateChart();
-  if (typeof drumExpertMode !== 'undefined') drumExpertMode = drumExpertOn;
   if (typeof drumCreateChart     === 'function') drumCreateChart();
 }
 
@@ -630,20 +669,18 @@ function drawBackgroundGrid() {
 function drawStartScreen() {
   push();
   imageMode(CENTER);
-
   if (imgBassSSU) {
-    let bW = width * 0.20; // 화면 너비의 20% 크기
+    let bW = width * 0.20; 
     let bH = (imgBassSSU.height / imgBassSSU.width) * bW; 
     image(imgBassSSU, width * 0.15, height * 0.30, bW, bH);
   }
-
   if (imgDrumSSU) {
-    let dW = width * 0.22; // 드럼은 조금 더 강조하기 위해 22% 크기
+    let dW = width * 0.22; 
     let dH = (imgDrumSSU.height / imgDrumSSU.width) * dW;
     image(imgDrumSSU, width * 0.85, height * 0.70, dW, dH);
   }
-
   pop();
+
   push(); textAlign(CENTER,CENTER); textStyle(BOLD);
   textSize(84); fill(0,230,255,30); text("SSUMIT",width/2+3,height/2-97);
   fill(0,230,255); text("SSUMIT",width/2,height/2-100);
@@ -651,6 +688,7 @@ function drawStartScreen() {
   text("합주 일렉트릭 앙상블 리듬 게임",width/2,height/2-40);
   textSize(13); fill(100,110,130);
   text("개발팀 썸썸써밋 : 김도경, 김도현, 김도현, 방준혁",width/2,height/2-15); pop();
+  
   drawButton(uiButtons.start); drawButton(uiButtons.help); drawButton(uiButtons.full);
   if(isHelpVisible) drawHelpPopup();
 }
@@ -682,14 +720,12 @@ function drawButton(btn) {
   text(btn.label,btn.x+btn.w/2,btn.y+btn.h/2); pop();
 }
 
-// ▼ 병합된 다음 세션(NEXT) 표시기능 ▼
 function drawSessionIndicator(name, nextName) {
   push(); 
   rectMode(CENTER); 
   fill(0, 0, 0, 180); 
   stroke(0, 230, 255, 100); 
   strokeWeight(1);
-  
   rect(width / 2, 55, 340, 55, 8); 
   noStroke(); 
   
@@ -747,177 +783,62 @@ function drawPageTurnOverlay(targetTime, currentSessionKey) {
   translate(width / 2, height / 2);
   rectMode(CENTER);
   
-  // ---------------------------------------------------
-  // 1. 미니멀 글래스모피즘 컨테이너 (560 x 430)
-  // ---------------------------------------------------
-  let w = 560;
-  let h = 430;
+  let w = 560; let h = 430;
+  drawingContext.shadowBlur = 25; drawingContext.shadowColor = 'rgba(255, 0, 127, 0.4)';
+  fill(5, 6, 12, 235); stroke(255, 0, 127, 180); strokeWeight(1);
+  rect(0, 0, w, h, 4); 
+  drawingContext.shadowBlur = 0; 
+  noStroke(); textAlign(CENTER, CENTER);
   
-  // 미니멀한 네온 라인 매젠타 글로우
-  drawingContext.shadowBlur = 25;
-  drawingContext.shadowColor = 'rgba(255, 0, 127, 0.4)';
+  fill(255, 0, 127); textSize(11); textStyle(BOLD); text("C R I T I C A L   A L E R T", 0, -175);
+  fill(255, 255, 255); textSize(18); textStyle(NORMAL); text("SWIPE TO TURN PAGE", 0, -145);
   
-  fill(5, 6, 12, 235); // 공백 감각을 극대화한 오프블랙 배경
-  stroke(255, 0, 127, 180); // 세련된 네온 매젠타 엣지
-  strokeWeight(1);
-  rect(0, 0, w, h, 4); // 미니멀리즘을 위해 라운드 값을 줄임
-  drawingContext.shadowBlur = 0; // 즉시 리셋으로 렌더링 최적화
-  
-  // ---------------------------------------------------
-  // 2. 정제된 미니멀 HUD 타이포그래피
-  // ---------------------------------------------------
-  noStroke();
-  textAlign(CENTER, CENTER);
-  
-  // 상단 서브 액센트 타이틀
-  fill(255, 0, 127);
-  textSize(11);
-  textStyle(BOLD);
-  text("C R I T I C A L   A L E R T", 0, -175);
-  
-  // 메인 인스트럭션 타이틀
-  fill(255, 255, 255);
-  textSize(18);
-  textStyle(NORMAL); // 두꺼운 폰트 대신 얇고 모던한 서체 스타일 유지
-  text("SWIPE TO TURN PAGE", 0, -145);
-  
-  // ---------------------------------------------------
-  // 3. 네온 아크 & 미니멀 카운트다운 (상단 유기적 배치)
-  // ---------------------------------------------------
   let tl = targetTime - globalSongTime;
   let bc = Math.ceil(tl / ONE_BEAT_MS);
   
   if (bc > 0 && bc <= 4) {
     let cy = -95;
-    // 얇은 가이드 링
-    noFill();
-    stroke(255, 255, 255, 20);
-    strokeWeight(1);
-    circle(0, cy, 50);
-    
-    // 진행도에 맞춰 줄어드는 미니멀 사이언 호
-    stroke(0, 229, 255);
-    strokeWeight(2);
+    noFill(); stroke(255, 255, 255, 20); strokeWeight(1); circle(0, cy, 50);
+    stroke(0, 229, 255); strokeWeight(2);
     let angle = map(tl % ONE_BEAT_MS, 0, ONE_BEAT_MS, 0, TWO_PI);
     arc(0, cy, 50, 50, -HALF_PI, -HALF_PI + angle);
-    
-    // 카운트다운 숫자
-    noStroke();
-    fill(0, 229, 255);
-    textSize(22);
-    textStyle(BOLD);
-    text(bc, 0, cy - 1);
+    noStroke(); fill(0, 229, 255); textSize(22); textStyle(BOLD); text(bc, 0, cy - 1);
   }
   
-  // ---------------------------------------------------
-  // 4. 왜곡 없는 16:9 미러 웹캠 뷰 (360 x 202.5 스케일 다운)
-  // ---------------------------------------------------
-  let camW = 360;
-  let camH = 202.5;
-  let camY = 35;
+  let camW = 360, camH = 202.5, camY = 35;
+  push(); scale(-1, 1); imageMode(CENTER); image(mainCapture, 0, camY, camW, camH); pop();
   
-  push();
-  scale(-1, 1);
-  imageMode(CENTER);
-  image(mainCapture, 0, camY, camW, camH);
-  pop();
+  noFill(); stroke(0, 229, 255, 60); strokeWeight(1); rect(0, camY, camW, camH);
   
-  // 웹캠을 감싸는 미니멀 시안 외곽선
-  noFill();
-  stroke(0, 229, 255, 60);
-  strokeWeight(1);
-  rect(0, camY, camW, camH);
-  
-  // ---------------------------------------------------
-  // 5. 모션 센서 노드 (타이밍 및 예외 처리 로직 수정완료)
-  // ---------------------------------------------------
   let lx = -120, rx = 120, nodeY = 35;
-  
-  // 정밀 계산된 16:9 비율 픽셀 매핑 연산
   let rH = checkMainMotion(67, 112, 25);
   let lH = checkMainMotion(333, 112, 25);
   let now = millis();
   
-  // [수정] 1단계 재트리거 제한을 300ms -> 400ms로 늘려 안정성 확보
-  if (rH && !rightCircleTriggered && now - rightTriggerTime > 400) {
-    rightCircleTriggered = true;
-    rightTriggerTime = now;
-  }
-  
-  // [수정] 제한시간을 1500ms로 약간 늘리고, 만료 시 rightTriggerTime을 현재로 동기화
-  // 이 처리를 안 해주면 손이 오른쪽 노드에 머물 때 연속으로 오작동(무한 트리거)이 일어납니다.
-  if (rightCircleTriggered && now - rightTriggerTime > 1500) {
-    rightCircleTriggered = false;
-    rightTriggerTime = now; // 쿨다운 앵커 추가
-  }
-  
+  if (rH && !rightCircleTriggered && now - rightTriggerTime > 400) { rightCircleTriggered = true; rightTriggerTime = now; }
+  if (rightCircleTriggered && now - rightTriggerTime > 1500) { rightCircleTriggered = false; rightTriggerTime = now; }
   let gap = now - rightTriggerTime;
+  if (rightCircleTriggered && lH && gap >= 50 && gap <= 1500) { motionSuccessList[currentSessionKey] = true; rightCircleTriggered = false; }
   
-  // [수정] 아주 빠른 스와이프도 인식하도록 최소 타임갭 제한 완화 (150ms -> 50ms)
-  if (rightCircleTriggered && lH && gap >= 50 && gap <= 1500) {
-    motionSuccessList[currentSessionKey] = true;
-    rightCircleTriggered = false;
-  }
-  
-  // 🟢 [오른쪽 START 노드 UI]
   let rColor = rightCircleTriggered ? color(0, 255, 150) : rH ? color(0, 255, 150) : color(255, 0, 127);
   push();
-  if (rightCircleTriggered || rH) {
-    drawingContext.shadowBlur = 20;
-    drawingContext.shadowColor = rColor;
-  }
-  noFill();
-  stroke(rColor);
-  strokeWeight(1.5);
-  circle(rx, nodeY, 50); // 헤어라인 바깥 고리
+  if (rightCircleTriggered || rH) { drawingContext.shadowBlur = 20; drawingContext.shadowColor = rColor; }
+  noFill(); stroke(rColor); strokeWeight(1.5); circle(rx, nodeY, 50); 
+  fill(red(rColor), green(rColor), blue(rColor), rightCircleTriggered ? 200 : 40); noStroke(); circle(rx, nodeY, rightCircleTriggered ? 24 : 14); pop();
   
-  // 핵심 코어 포인트
-  fill(red(rColor), green(rColor), blue(rColor), rightCircleTriggered ? 200 : 40);
-  noStroke();
-  circle(rx, nodeY, rightCircleTriggered ? 24 : 14);
-  pop();
-  
-  // 🔵 [왼쪽 END 노드 UI]
   let lColor = motionSuccessList[currentSessionKey] ? color(0, 255, 150) : rightCircleTriggered ? color(0, 229, 255) : color(255, 255, 255, 40);
   push();
-  if (rightCircleTriggered) {
-    drawingContext.shadowBlur = 20;
-    drawingContext.shadowColor = lColor;
-  }
-  noFill();
-  stroke(lColor);
-  strokeWeight(1.5);
-  circle(lx, nodeY, 50);
+  if (rightCircleTriggered) { drawingContext.shadowBlur = 20; drawingContext.shadowColor = lColor; }
+  noFill(); stroke(lColor); strokeWeight(1.5); circle(lx, nodeY, 50);
+  fill(red(lColor), green(lColor), blue(lColor), rightCircleTriggered ? 180 : 30); noStroke(); circle(lx, nodeY, rightCircleTriggered ? 24 : 14); pop();
   
-  fill(red(lColor), green(lColor), blue(lColor), rightCircleTriggered ? 180 : 30);
-  noStroke();
-  circle(lx, nodeY, rightCircleTriggered ? 24 : 14);
-  pop();
+  noStroke(); textStyle(BOLD); textSize(11);
+  fill(rightCircleTriggered ? color(0, 255, 150) : color(255, 0, 127, 200)); text("01 // START", rx, nodeY + 45);
+  fill(motionSuccessList[currentSessionKey] ? color(0, 255, 150) : rightCircleTriggered ? color(0, 229, 255) : color(255, 255, 255, 80)); text("02 // ACTION", lx, nodeY + 45);
   
-  // ---------------------------------------------------
-  // 6. 하단 미니멀 가이드 스트립
-  // ---------------------------------------------------
-  noStroke();
-  textStyle(BOLD);
-  textSize(11);
-  
-  fill(rightCircleTriggered ? color(0, 255, 150) : color(255, 0, 127, 200));
-  text("01 // START", rx, nodeY + 45);
-  
-  fill(motionSuccessList[currentSessionKey] ? color(0, 255, 150) : rightCircleTriggered ? color(0, 229, 255) : color(255, 255, 255, 80));
-  text("02 // ACTION", lx, nodeY + 45);
-  
-  // 상태 변경 안내 서브 텍스트
-  fill(140, 145, 160);
-  textStyle(NORMAL);
-  textSize(12);
-  if (rightCircleTriggered) {
-    fill(0, 229, 255);
-    text("READY: SWIPE HAND LEFT IMMEDIATELY", 0, 175);
-  } else {
-    fill(100, 105, 120);
-    text("INTERACTION: GESTURE RIGHT TO LEFT TO FLIP SHEET", 0, 175);
-  }
+  fill(140, 145, 160); textStyle(NORMAL); textSize(12);
+  if (rightCircleTriggered) { fill(0, 229, 255); text("READY: SWIPE HAND LEFT IMMEDIATELY", 0, 175); } 
+  else { fill(100, 105, 120); text("INTERACTION: GESTURE RIGHT TO LEFT TO FLIP SHEET", 0, 175); }
   
   mainPrevFrame.copy(mainCapture, 0, 0, 400, 225, 0, 0, 400, 225);
   pop();
@@ -944,7 +865,7 @@ function triggerGameOver() {
 }
 
 // ============================================
-// 🖱️ 입력
+// 🖱️ 입력 이벤트
 // ============================================
 function mousePressed() {
   if(isHelpVisible){isHelpVisible=false;return;}
@@ -966,38 +887,36 @@ function mousePressed() {
   }
 
   if(screenState==='select'){
-    // BACK
     let bk=selectButtons.back;
     if(mouseX>bk.x&&mouseX<bk.x+bk.w&&mouseY>bk.y&&mouseY<bk.y+bk.h){
       screenState='start'; return;
     }
-    // 🥁 Drum Expert 토글 버튼 클릭 (카드 클릭보다 먼저 처리)
-    for(let i=0;i<songCardRects.length;i++){
-      let r=songCardRects[i];
-      let exBtnW=120, exBtnH=26;
-      let exBtnX=r.x+r.w-exBtnW-12;
-      let exBtnY=r.y+r.h-exBtnH-10;
-      if(mouseX>exBtnX&&mouseX<exBtnX+exBtnW&&mouseY>exBtnY&&mouseY<exBtnY+exBtnH){
-        drumExpertOn = !drumExpertOn; return;
+    
+    // 🥁 하이햇 토글 로직
+    let hh = selectButtons.hihat;
+    if(mouseX>hh.x&&mouseX<hh.x+hh.w&&mouseY>hh.y&&mouseY<hh.y+hh.h){
+      window.globalIsHihatRemoved = !window.globalIsHihatRemoved;
+      selectButtons.hihat.label = window.globalIsHihatRemoved ? "🥁 HI-HAT: REMOVED" : "🥁 HI-HAT: INCLUDED";
+      
+      if (typeof drumSetHihatState === 'function') {
+        drumSetHihatState(window.globalIsHihatRemoved);
       }
+      return;
     }
 
-    // 곡 카드 선택
     for(let i=0;i<songCardRects.length;i++){
       let r=songCardRects[i];
       if(mouseX>r.x&&mouseX<r.x+r.w&&mouseY>r.y&&mouseY<r.y+r.h){
         selectedSongIdx=i;
-        applySpeed(selectedSpeed); // 곡 바꾸면 타임라인 재계산
+        applySpeed(selectedSpeed); 
         return;
       }
     }
-    // 배속 버튼
     for(let btn of speedButtons){
       if(mouseX>btn.x&&mouseX<btn.x+btn.w&&mouseY>btn.y&&mouseY<btn.y+btn.h){
         applySpeed(btn.speed); return;
       }
     }
-    // PLAY
     let pl=selectButtons.play;
     if(mouseX>pl.x&&mouseX<pl.x+pl.w&&mouseY>pl.y&&mouseY<pl.y+pl.h){
       startEnsembleGame(); return;
@@ -1007,10 +926,13 @@ function mousePressed() {
 
 function keyPressed() {
   if(keyCode===ESCAPE){togglePause();return false;}
+  if(isCountingDown) return false; 
+  
   let currentSessionType = null;
   for(let i=0;i<SESSION_ORDER.length;i++){let s=SESSION_TIMELINE[SESSION_ORDER[i].key];if(globalSongTime>=s.start&&globalSongTime<s.end){currentSessionType=SESSION_ORDER[i].type;break;}}
   if((key === 'f' || key === 'F') && currentSessionType !== "DRUM"){fullscreen(!fullscreen());return;}
   if(isPaused||screenState!=='game') return;
+  
   let type=null;
   for(let i=0;i<SESSION_ORDER.length;i++){
     let s=SESSION_TIMELINE[SESSION_ORDER[i].key];
@@ -1022,7 +944,7 @@ function keyPressed() {
 }
 
 function keyReleased() {
-  if(isPaused||screenState!=='game') return;
+  if(isPaused||screenState!=='game'||isCountingDown) return; 
   let type=null;
   for(let i=0;i<SESSION_ORDER.length;i++){
     let s=SESSION_TIMELINE[SESSION_ORDER[i].key];
@@ -1038,31 +960,16 @@ function keyReleased() {
 // ============================================
 function handleVolumeSlider() {
   if (!volumeSlider) return;
-
-  // 🔊 [수정] 플레이 여부와 관계없이 슬라이더의 데시벨(dB) 값을 진폭으로 변환하여 항상 오디오에 적용합니다.
   let dbValue = volumeSlider.value();
-  let amplitude = pow(10, dbValue / 20);
-  if (masterBgm) {
-    masterBgm.amp(amplitude);
-  }
+  if (masterBgm) masterBgm.amp(pow(10, dbValue / 20));
 
-  // 순수 실시간 게임 플레이 중인 조건 정의
   let isPlayingLive = (screenState === 'game' && !isPaused && !isGameOver && !isGameEnded);
-
   if (isPlayingLive) {
-    // 1. 실제 연주 중에는 슬라이더만 숨깁니다.
     volumeSlider.hide();
   } else {
-    // 2. 그 외 모든 대기/정지 화면에서는 슬라이더를 보여주고 가이드 텍스트를 출력합니다.
     volumeSlider.show();
-
     push();
-    noStroke();
-    fill(160, 170, 190);
-    textSize(11);
-    textStyle(BOLD);
-    textAlign(RIGHT, BOTTOM);
-    
+    noStroke(); fill(160, 170, 190); textSize(11); textStyle(BOLD); textAlign(RIGHT, BOTTOM);
     let sign = dbValue > 0 ? "+" : "";
     text(`VOLUME: ${sign}${dbValue} dB`, width - 30, height - 42);
     pop();
