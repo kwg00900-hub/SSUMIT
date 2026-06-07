@@ -633,9 +633,9 @@ function drumDraw() {
   let drumY = 550; 
   textAlign(CENTER, CENTER); textSize(24); textStyle(BOLD);
   stroke(200); strokeWeight(2); line(250, drumY + 150, 250, drumY + 20); fill(40); ellipse(250, drumY + 20, 100, 20); fill(255, 0, 255); noStroke(); textSize(35); text("R", 250, drumY - 10);
-  stroke(200); strokeWeight(2); fill(40); ellipse(350, drumY + 100, 100, 30); line(300, drumY + 100, 300, drumY + 160); line(400, drumY + 100, 400, drumY + 160); arc(350, drumY + 160, 100, 30, 0, PI); fill(255, 0, 0); noStroke(); textSize(24); text("U", 350, drumY + 100);
-  stroke(200); strokeWeight(2); fill(40); ellipse(450, drumY, 80, 80); fill(255, 0, 0); noStroke(); text("I", 450, drumY);
-  stroke(200); strokeWeight(2); fill(40); ellipse(550, drumY, 80, 80); fill(255, 0, 0); noStroke(); text("F", 550, drumY);
+  stroke(200); strokeWeight(2); fill(40); ellipse(350, drumY + 100, 100, 30); line(300, drumY + 100, 300, drumY + 160); line(400, drumY + 100, 400, drumY + 160); arc(350, drumY + 160, 100, 30, 0, PI); fill(255, 255, 255); noStroke(); textSize(24); text("U", 350, drumY + 100);
+  stroke(200); strokeWeight(2); fill(40); ellipse(450, drumY, 80, 80); fill(0, 200, 255); noStroke(); text("I", 450, drumY);
+  stroke(200); strokeWeight(2); fill(40); ellipse(550, drumY, 80, 80); fill(255, 220, 0); noStroke(); text("F", 550, drumY);
   
   push();
   let pedalX = 480; let pedalY = drumY + 110;
@@ -643,11 +643,11 @@ function drumDraw() {
   fill(80); beginShape(); vertex(pedalX - 10, pedalY + 35); vertex(pedalX + 10, pedalY + 35); vertex(pedalX + 13, pedalY + 65); vertex(pedalX - 13, pedalY + 65); endShape(CLOSE);
   stroke(200); strokeWeight(3); line(pedalX, pedalY + 30, pedalX, pedalY - 5); 
   fill(255); noStroke(); circle(pedalX, pedalY - 5, 14); 
-  fill(255, 0, 0); textAlign(CENTER, CENTER); textSize(16); textStyle(BOLD); text("space", pedalX, pedalY + 15);
+  fill(255, 80, 50); textAlign(CENTER, CENTER); textSize(16); textStyle(BOLD); text("space", pedalX, pedalY + 15);
   pop();
 
-  stroke(200); strokeWeight(2); fill(40); ellipse(650, drumY + 110, 120, 40); line(590, drumY + 110, 590, drumY + 180); line(710, drumY + 110, 710, drumY + 180); arc(650, drumY + 180, 120, 40, 0, PI); fill(255, 0, 0); noStroke(); textSize(24); text("H", 650, drumY + 110);
-  stroke(200); strokeWeight(2); line(780, drumY + 180, 780, drumY - 10); fill(40); ellipse(780, drumY - 10, 120, 20); fill(255, 0, 255); noStroke(); textSize(35); text("E", 780, drumY - 40);
+  stroke(200); strokeWeight(2); fill(40); ellipse(650, drumY + 110, 120, 40); line(590, drumY + 110, 590, drumY + 180); line(710, drumY + 110, 710, drumY + 180); arc(650, drumY + 180, 120, 40, 0, PI); fill(80, 255, 120); noStroke(); textSize(24); text("H", 650, drumY + 110);
+  stroke(200); strokeWeight(2); line(780, drumY + 180, 780, drumY - 10); fill(40); ellipse(780, drumY - 10, 120, 20); fill(180, 100, 255); noStroke(); textSize(35); text("E", 780, drumY - 40);
   pop();
   
   drumDrawUI(currentSongTime); 
@@ -664,37 +664,45 @@ function drumDrawUI(currentSongTime) {
 // 개별 음표 그래픽 렌더링 함수 세트
 // ==========================================
 function drumDrawCrashCymbal(x, y) {
-  stroke(255); strokeWeight(2); noFill(); circle(x, y, 24); 
+  // 크래시: 오렌지 (CAM)
+  stroke(255, 140, 0); strokeWeight(2); noFill(); circle(x, y, 24); 
   strokeWeight(3); line(x - 8, y - 8, x + 8, y + 8); line(x + 8, y - 8, x - 8, y + 8); 
 }
 function drumDrawHihat(x, y) {
-  stroke(255); strokeWeight(3); noFill(); line(x - 10, y - 10, x + 10, y + 10); line(x + 10, y - 10, x - 10, y + 10); 
+  // 히햇: 마젠타 (R)
+  stroke(255, 0, 255); strokeWeight(3); noFill(); line(x - 10, y - 10, x + 10, y + 10); line(x + 10, y - 10, x - 10, y + 10); 
 }
 function drumDrawRideCymbal(x, y) {
-  stroke(255); strokeWeight(2); fill(40); beginShape(); vertex(x, y - 12); vertex(x + 12, y); vertex(x, y + 12); vertex(x - 12, y); endShape(CLOSE); 
+  // 라이드: 연보라 (E)
+  stroke(180, 100, 255); strokeWeight(2); fill(40); beginShape(); vertex(x, y - 12); vertex(x + 12, y); vertex(x, y + 12); vertex(x - 12, y); endShape(CLOSE); 
 }
 function drumDrawSnare(x, y) {
+  // 스네어: 흰색 (U)
   fill(255); noStroke(); push(); translate(x, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop(); 
   stroke(255); strokeWeight(2); line(x + 12, y, x + 12, y - 50); 
   fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(18); textStyle(BOLD); text("U",x,y); 
 }
 function drumDrawTom1(x, y) {
-  fill(255); noStroke(); push(); translate(x, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop(); 
-  stroke(255); strokeWeight(2); line(x + 12, y, x + 12, y - 30); 
+  // Tom1: 하늘색 (I)
+  fill(0, 200, 255); noStroke(); push(); translate(x, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop(); 
+  stroke(0, 200, 255); strokeWeight(2); line(x + 12, y, x + 12, y - 30); 
   fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(18); textStyle(BOLD); text("I", x, y); 
 }
 function drumDrawTom2(x, y) {
-  fill(255); noStroke(); push(); translate(x, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop(); 
-  stroke(255); strokeWeight(2); line(x + 12, y, x + 12, y - 30); 
+  // Tom2: 노란색 (F)
+  fill(255, 220, 0); noStroke(); push(); translate(x, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop(); 
+  stroke(255, 220, 0); strokeWeight(2); line(x + 12, y, x + 12, y - 30); 
   fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(18); textStyle(BOLD); text("F", x, y); 
 }
 function drumDrawFloorTom(x, y) {
-  fill(255); noStroke(); push(); translate(x, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop(); 
-  stroke(255); strokeWeight(2); line(x + 12, y, x + 12, y - 70); 
+  // FloorTom: 연두색 (H)
+  fill(80, 255, 120); noStroke(); push(); translate(x, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop(); 
+  stroke(80, 255, 120); strokeWeight(2); line(x + 12, y, x + 12, y - 70); 
   fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(18); textStyle(BOLD); text("H", x, y);
 }
 function drumDrawKick(x, y) {
-  fill(255); noStroke(); push(); translate(x-5, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop(); 
-  stroke(255); strokeWeight(2); line(x + 12, y, x + 12, y - 90); 
+  // Kick: 주황빨강 (space)
+  fill(255, 80, 50); noStroke(); push(); translate(x-5, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop(); 
+  stroke(255, 80, 50); strokeWeight(2); line(x + 12, y, x + 12, y - 90); 
   fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(13); textStyle(BOLD); text("SPC", x-5, y);
 }
