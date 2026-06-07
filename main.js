@@ -1,3 +1,33 @@
+// 💡 HOW TO PLAY 멀티 페이지 관리를 위한 전역 변수 및 5개 빈 페이지 데이터
+let currentHelpPage = 0; 
+const HELP_PAGES_DATA = [
+  {
+    title: "< 1. 키보드 플레이 방법 >",
+    gifName: "keyboard.gif",
+    desc: "여기에 1페이지 가이드 설명을 적으세요.\n어떻게저떻게 키보드로 플레이합니다."
+  },
+  {
+    title: "< 2. 베이스 플레이 방법 >",
+    gifName: "bass.gif",
+    desc: "여기에 2페이지 가이드 설명을 적으세요.\n마우스를 위아래로 슥슥 조준하여 연주합니다."
+  },
+  {
+    title: "< 3. 드럼 플레이 방법 >",
+    gifName: "drum.gif",
+    desc: "여기에 3페이지 가이드 설명을 적으세요.\n노트에 맞춰 키를 입력합니다."
+  },
+  {
+    title: "< 4. 악보 넘기기 가이드 >",
+    gifName: "pageturn.gif",
+    desc: "여기에 4페이지 가이드 설명을 적으세요.\nCRITICAL ALERT가 뜨면 손을 휙!"
+  },
+  {
+    title: "< 5. 일시정지 및 꿀팁 >",
+    gifName: "tips.gif",
+    desc: "여기에 5페이지 가이드 설명을 적으세요.\nESC 키를 누르면 일시정지가 가능합니다."
+  }
+];
+
 // ===================================================
 // main.js — 통합 최종 버전 
 // [수정] ESC 버그 수정 + 결과화면 등급 이미지 표시
@@ -717,12 +747,77 @@ function drawPauseHint() {
 }
 
 function drawHelpPopup() {
-  fill(0, 0, 0, 230); rect(0, 0, width, height);
-  fill(20, 20, 30); stroke(0, 230, 255); rect(width / 2 - 300, height / 2 - 210, 600, 430, 20);
-  fill(255); noStroke(); textAlign(LEFT, TOP); textSize(15);
-  let desc = "이 게임은 한 곡 안에서 밴드의 세가지 세션(베이스, 건반, 드럼)을 모두 플레이 할 수 있는 리듬게임입니다.\n\n베이스: 마우스를 위 아래로 움직여 조준점을 줄 위에 위치시키고 타이밍을 맞춰 스페이스바/클릭 합니다.\n\n건반: 블럭이 떨어지는 타이밍에 맞추어 지정된 키보드를 누릅니다.\n\n드럼: 드럼 악보 위 지정된 키를 타이밍에 맞추어 누릅니다.\n\n🔥 중요 🔥: 새로운 악기 파트가 시작되면 첫 4박자 동안 화면에 '악보 넘기기 창'이 뜹니다. 실패 시 즉시 게임 오버됩니다!\n\n⏸ 일시정지: ESC 키\n🎚️ 배속: 곡 선택 화면에서 변경 가능";
-  text(desc, width / 2 - 270, height / 2 - 185, 540, 380);
-  textAlign(CENTER, CENTER); text("[클릭하여 닫기]", width / 2, height / 2 + 195);
+  fill(0, 0, 0, 235); 
+  rect(0, 0, width, height);
+  
+  // 팝업 창 크기 및 좌표
+  let pw = 600, ph = 520;
+  let px = width / 2 - pw / 2;
+  let py = height / 2 - ph / 2;
+  
+  fill(20, 22, 33); 
+  stroke(0, 230, 255); 
+  strokeWeight(2);
+  rect(px, py, pw, ph, 20);
+  
+  // 예외 방지 안전장치
+  if (typeof currentHelpPage === 'undefined') currentHelpPage = 0;
+  let page = HELP_PAGES_DATA[currentHelpPage];
+  
+  // 1. 상단 제목 (기존 p5 상수 사용)
+  fill(0, 230, 255); 
+  noStroke(); 
+  textAlign(CENTER, TOP); 
+  textStyle(BOLD); 
+  textSize(20);
+  text(page.title, width / 2, py + 30);
+  
+  // 2. 중간 GIF 영역
+  let gifW = 420, gifH = 236;
+  let gifX = width / 2 - gifW / 2;
+  let gifY = py + 75;
+  fill(30, 33, 48); 
+  stroke(60, 75, 100); 
+  strokeWeight(1);
+  rect(gifX, gifY, gifW, gifH, 10);
+  
+  fill(130, 145, 170); 
+  noStroke(); 
+  textStyle(NORMAL); 
+  textSize(13); 
+  textAlign(CENTER, CENTER);
+  text("[ GIF 파일 표시 영역 ]\n파일명: " + page.gifName + "\n\n(※ 여기에 플레이 예시 화면이 뿅 샤랄라 등장!)", width / 2, gifY + gifH / 2);
+  
+  // 3. 하단 설명 텍스트
+  fill(220, 230, 245); 
+  textStyle(NORMAL); 
+  textSize(15); 
+  textAlign(CENTER, TOP);
+  text(page.desc, width / 2, gifY + gifH + 25);
+  
+  // 4. 하단 페이지 인디케이터
+  fill(90, 105, 130); 
+  textSize(13); 
+  textAlign(CENTER, BOTTOM);
+  text((currentHelpPage + 1) + " / " + HELP_PAGES_DATA.length, width / 2, py + ph - 20);
+  
+  // 5. 좌우 화살표 버튼 UI
+  textSize(24); 
+  textStyle(BOLD); 
+  textAlign(CENTER, CENTER);
+  
+  if (currentHelpPage > 0) fill(0, 230, 255); else fill(45, 50, 65);
+  text("◀", px + 35, py + ph / 2);
+  
+  if (currentHelpPage < HELP_PAGES_DATA.length - 1) fill(0, 230, 255); else fill(45, 50, 65);
+  text("▶", px + pw - 35, py + ph / 2);
+  
+  // 6. 하단 닫기 버튼
+  fill(255, 70, 85); 
+  textSize(14); 
+  textStyle(BOLD); 
+  textAlign(CENTER, CENTER);
+  text("[ 클릭하여 닫기 ]", width / 2, py + ph - 55);
 }
 
 function drawPageTurnOverlay(targetTime, currentSessionKey) {
@@ -803,37 +898,100 @@ function triggerGameOver() {
 // 🖱️ 입력 이벤트
 // ============================================
 function mousePressed() {
-  if (isHelpVisible) { isHelpVisible = false; return; }
-  if (mouseX > uiButtons.full.x && mouseX < uiButtons.full.x + uiButtons.full.w &&
-      mouseY > uiButtons.full.y && mouseY < uiButtons.full.y + uiButtons.full.h) { fullscreen(!fullscreen()); return; }
-
-  if (screenState === 'start') {
-    if (mouseX > uiButtons.start.x && mouseX < uiButtons.start.x + uiButtons.start.w &&
-        mouseY > uiButtons.start.y && mouseY < uiButtons.start.y + uiButtons.start.h) { screenState = 'select'; return; }
-    if (mouseX > uiButtons.help.x && mouseX < uiButtons.help.x + uiButtons.help.w &&
-        mouseY > uiButtons.help.y && mouseY < uiButtons.help.y + uiButtons.help.h) { isHelpVisible = true; return; }
+  // 💡 [도움말 제어] 도움말 창이 열려있을 때의 독립 팝업 클릭 핸들러
+  if (isHelpVisible) {
+    let pw = 600, ph = 520;
+    let px = width / 2 - pw / 2;
+    let py = height / 2 - ph / 2;
+    
+    // 1. 왼쪽 화살표 클릭 (◀)
+    if (mouseX > px + 10 && mouseX < px + 60 && mouseY > py + ph/2 - 30 && mouseY < py + ph/2 + 30) {
+      if (currentHelpPage > 0) currentHelpPage--;
+      return; 
+    }
+    
+    // 2. 오른쪽 화살표 클릭 (▶)
+    if (mouseX > px + pw - 60 && mouseX < px + pw - 10 && mouseY > py + ph/2 - 30 && mouseY < py + ph/2 + 30) {
+      if (currentHelpPage < HELP_PAGES_DATA.length - 1) currentHelpPage++;
+      return; 
+    }
+    
+    // 3. 하단 [ 클릭하여 닫기 ] 영역 클릭
+    if (mouseX > width/2 - 80 && mouseX < width/2 + 80 && mouseY > py + ph - 75 && mouseY < py + ph - 35) {
+      isHelpVisible = false;
+      currentHelpPage = 0; 
+      return; 
+    }
+    
+    return; // 팝업 외 배경 클릭 시 뒷 배경 버튼 오작동 방지용 차단막
   }
 
-  if (screenState === 'select') {
-    let bk = selectButtons.back;
-    if (mouseX > bk.x && mouseX < bk.x + bk.w && mouseY > bk.y && mouseY < bk.y + bk.h) { screenState = 'start'; return; }
-    let hh = selectButtons.hihat;
-    if (mouseX > hh.x && mouseX < hh.x + hh.w && mouseY > hh.y && mouseY < hh.y + hh.h) {
-      window.globalIsHihatRemoved = !window.globalIsHihatRemoved;
-      selectButtons.hihat.label = window.globalIsHihatRemoved ? "🥁 DRUM-EXPERT: OFF" : "🥁 DRUM-EXPERT: ON";
-      if (typeof drumExpertMode    !== 'undefined') drumExpertMode = !window.globalIsHihatRemoved;
-      if (typeof drumSetHihatState === 'function')  drumSetHihatState(window.globalIsHihatRemoved);
+  // 📺 [공통] 전체화면 버튼 클릭 체크
+  if(mouseX>uiButtons.full.x&&mouseX<uiButtons.full.x+uiButtons.full.w&&
+     mouseY>uiButtons.full.y&&mouseY<uiButtons.full.y+uiButtons.full.h){
+    fullscreen(!fullscreen()); return;
+  }
+
+  // 🏠 [시작 화면] 상태일 때의 버튼 체크
+  if(screenState==='start'){
+    if(mouseX>uiButtons.start.x&&mouseX<uiButtons.start.x+uiButtons.start.w&&
+       mouseY>uiButtons.start.y&&mouseY<uiButtons.start.y+uiButtons.start.h){
+      screenState='select'; return;
+    }
+    if(mouseX>uiButtons.help.x&&mouseX<uiButtons.help.x+uiButtons.help.w&&
+       mouseY>uiButtons.help.y&&mouseY<uiButtons.help.y+uiButtons.help.h){
+      isHelpVisible=true; 
+      currentHelpPage = 0; // 열 때 무조건 1페이지부터 뜨도록 초기화
       return;
     }
-    for (let i = 0; i < songCardRects.length; i++) {
-      let r = songCardRects[i];
-      if (mouseX > r.x && mouseX < r.x + r.w && mouseY > r.y && mouseY < r.y + r.h) { selectedSongIdx = i; applySpeed(selectedSpeed); return; }
+  }
+
+  // 🎵 [곡 선택 화면] 상태일 때의 버튼 체크
+  if(screenState==='select'){
+    // ← BACK 버튼
+    let bk=selectButtons.back;
+    if(mouseX>bk.x&&mouseX<bk.x+bk.w&&mouseY>bk.y&&mouseY<bk.y+bk.h){
+      screenState='start'; return;
     }
-    for (let btn of speedButtons) {
-      if (mouseX > btn.x && mouseX < btn.x + btn.w && mouseY > btn.y && mouseY < btn.y + btn.h) { applySpeed(btn.speed); return; }
+    
+    // 🥁 하이햇 토글 버튼 (DRUM-EXPERT)
+    let hh = selectButtons.hihat;
+    if(mouseX>hh.x&&mouseX<hh.x+hh.w&&mouseY>hh.y&&mouseY<hh.y+hh.h){
+      window.globalIsHihatRemoved = !window.globalIsHihatRemoved;
+      selectButtons.hihat.label = window.globalIsHihatRemoved ? "🥁 DRUM-EXPERT: OFF" : "🥁 DRUM-EXPERT: ON";
+      
+      if (typeof drumExpertMode !== 'undefined') {
+        drumExpertMode = !window.globalIsHihatRemoved;
+      }
+      
+      if (typeof drumSetHihatState === 'function') {
+        drumSetHihatState(window.globalIsHihatRemoved);
+      }
+      return;
     }
-    let pl = selectButtons.play;
-    if (mouseX > pl.x && mouseX < pl.x + pl.w && mouseY > pl.y && mouseY < pl.y + pl.h) { startEnsembleGame(); return; }
+
+    // 곡 카드 리스트 클릭 체크
+    for(let i=0;i<songCardRects.length;i++){
+      let r=songCardRects[i];
+      if(mouseX>r.x&&mouseX<r.x+r.w&&mouseY>r.y&&mouseY<r.y+r.h){
+        selectedSongIdx=i;
+        applySpeed(selectedSpeed); 
+        return;
+      }
+    }
+    
+    // 배속(SPEED) 버튼 클릭 체크
+    for(let btn of speedButtons){
+      if(mouseX>btn.x&&mouseX<btn.x+btn.w&&mouseY>btn.y&&mouseY<btn.y+btn.h){
+        applySpeed(btn.speed); return;
+      }
+    }
+    
+    // ▶ PLAY 게임 시작 버튼 클릭 체크
+    let pl=selectButtons.play;
+    if(mouseX>pl.x&&mouseX<pl.x+pl.w&&mouseY>pl.y&&mouseY<pl.y+pl.h){
+      startEnsembleGame(); return;
+    }
   }
 }
 
