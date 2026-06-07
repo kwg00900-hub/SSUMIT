@@ -299,7 +299,16 @@ function keyboardCreateChart() {
   keyboard_nr(0, 2.5);        // beat 177.5 → 쉼 2.5 → beat 180.0
 
   keyboardSeek(180.0);
-  keyboard_hr(4, 4.0, 79.5);   // beat 180.0, 홀드 4.0
+  keyboard_hr(4, 4.0, 8.0);   // beat 180.0, 홀드 4.0
+  keyboard_nr(0, 0.5, 0.0);   // beat 180.0, 홀드 4.0
+  keyboard_nr(3, 0.5, 0.0);   // beat 180.0, 홀드 4.0
+  keyboard_nr(1, 0.5, 0.0);   // beat 180.0, 홀드 4.0
+  keyboard_nr(4, 0.5, 0.0);   // beat 180.0, 홀드 4.0
+  keyboard_nr(2, 0.5, 0.0);   // beat 180.0, 홀드 4.0
+  keyboard_nr(5, 0.5, 0.0);   // beat 180.0, 홀드 4.0
+  keyboard_nr(3, 0.5, 0.0);   // beat 180.0, 홀드 4.0
+  keyboard_nr(7, 0.5, 69.5);   // beat 180.0, 홀드 4.0
+  
 
   // ================================================================
   // 구간 3: 오 기다림 (beat 261 ~)
