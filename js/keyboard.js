@@ -275,17 +275,11 @@ function keyboardCreateChart() {
   keyboard_hr(5, 0.5, 0.5);   // beat 31.0, 홀드 1.0
 
   keyboardSeek(32.0);
-  keyboard_hr(6, 2.0, 130.0);   // beat 32.0, 홀드 2.0
+  keyboard_hr(6, 2.0, 134.5);   // beat 32.0, 홀드 2.0
 
   // ================================================================
   // 구간 2: 너에게 하고픈 말은 (beat 164 ~)
   // ================================================================
-  keyboardSeek(164.0);
-  keyboard_nr(6, 1.5);        // beat 164.0 → 쉼 1.5 → beat 165.5
-
-  keyboardSeek(165.5);
-  keyboard_nr(5, 3.0);        // beat 165.5 → 쉼 3.0 → beat 168.5
-
   keyboardSeek(168.5);
   keyboard_nr(4, 1.0);        // beat 168.5
 
@@ -305,17 +299,11 @@ function keyboardCreateChart() {
   keyboard_nr(0, 2.5);        // beat 177.5 → 쉼 2.5 → beat 180.0
 
   keyboardSeek(180.0);
-  keyboard_hr(4, 4.0, 77.0);   // beat 180.0, 홀드 4.0
+  keyboard_hr(4, 4.0, 79.5);   // beat 180.0, 홀드 4.0
 
   // ================================================================
   // 구간 3: 오 기다림 (beat 261 ~)
   // ================================================================
-  keyboardSeek(261.0);
-  keyboard_hr(5, 2.0, 0.5);   // beat 261.0, 홀드 2.0, 쉼 0.5
-
-  keyboardSeek(263.5);
-  keyboard_hr(4, 1.0, 1.0);   // beat 263.5, 홀드 1.0, 쉼 1.0
-
   keyboardSeek(265.5);
   keyboard_nr(6, 0.5);        // beat 265.5
   keyboard_nr(6, 0.5);        // beat 266.0
@@ -337,16 +325,12 @@ function keyboardCreateChart() {
   keyboard_hr(3, 2.0, 1.5);   // beat 276.0, 홀드 2.0, 쉼 1.5
 
   keyboardSeek(279.5);
-  keyboard_hr(4, 1.0, 35.5);   // beat 279.5, 홀드 1.0
+  keyboard_hr(4, 1.0, 39.5);   // beat 279.5, 홀드 1.0
 
   // ================================================================
   // 구간 4: (beat 316 ~)
   // ================================================================
-  keyboardSeek(316.0);
-  keyboard_nr(4, 1.0);        // beat 316.0
-  keyboard_nr(4, 1.0);        // beat 317.0
-  keyboard_nr(4, 0.5);        // beat 318.0
-  keyboard_nr(4, 1.0);        // beat 318.5
+  keyboardSeek(319.5);
   keyboard_nr(3, 1.0);        // beat 319.5
   keyboard_nr(3, 1.5);        // beat 320.5 → 쉼 1.5 → beat 322.0
 
