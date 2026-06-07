@@ -123,7 +123,7 @@ let uiButtons = {
 let selectButtons = {
   play:  { x: 0, y: 0, w: 220, h: 55, label: "▶  PLAY" },
   back:  { x: 0, y: 0, w: 120, h: 42, label: "← BACK"  },
-  hihat: { x: 0, y: 0, w: 180, h: 42, label: "🥁 HI-HAT: INCLUDED" } // 하이햇 토글 버튼 추가
+  hihat: { x: 0, y: 0, w: 180, h: 42, label: "🥁 DRUM-EXPERT: ON" } // 하이햇 토글 버튼 추가
 };
 let speedButtons = [];  
 let songCardRects = []; 
@@ -604,6 +604,10 @@ function startEnsembleGame() {
   if (typeof bassScore     !== 'undefined') { bassScore     = 0; bassCombo      = 0; }
   if (typeof drumScore     !== 'undefined') { drumScore     = 0; drumCombo      = 0; }
 
+  if (typeof drumExpertMode !== 'undefined') {
+    drumExpertMode = !window.globalIsHihatRemoved;
+  }
+
   // 외부 드럼 파일에 상태 연동 함수가 있다면 호출
   if (typeof drumSetHihatState === 'function') {
     drumSetHihatState(window.globalIsHihatRemoved);
@@ -920,11 +924,16 @@ function mousePressed() {
       screenState='start'; return;
     }
     
-    // 🥁 하이햇 토글 로직
+// 🥁 하이햇 토글 로직
     let hh = selectButtons.hihat;
     if(mouseX>hh.x&&mouseX<hh.x+hh.w&&mouseY>hh.y&&mouseY<hh.y+hh.h){
       window.globalIsHihatRemoved = !window.globalIsHihatRemoved;
-      selectButtons.hihat.label = window.globalIsHihatRemoved ? "🥁 HI-HAT: REMOVED" : "🥁 HI-HAT: INCLUDED";
+      selectButtons.hihat.label = window.globalIsHihatRemoved ? "🥁 DRUM-EXPERT: OFF" : "🥁 DRUM-EXPERT: ON";
+      
+      // 🌟 [추가] drum.js의 변수를 직접 제어 (하이햇 제거 여부와 반대로 설정)
+      if (typeof drumExpertMode !== 'undefined') {
+        drumExpertMode = !window.globalIsHihatRemoved;
+      }
       
       if (typeof drumSetHihatState === 'function') {
         drumSetHihatState(window.globalIsHihatRemoved);
