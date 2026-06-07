@@ -79,6 +79,9 @@ const SONG_LIST = [
 // 현재 선택된 곡 인덱스
 let selectedSongIdx = 0;
 
+// 🥁 Drum Expert 모드 (true=Hihat/Ride 포함, false=제외)
+let drumExpertOn = true;
+
 // 배속 적용 후 실제 타임라인
 let SESSION_TIMELINE = {};
 
@@ -151,6 +154,7 @@ function applySpeed(speed) {
   // 실제 프레임 속도가 필요한 경우에만 배속 정보를 따로 넘겨줍니다.
   if (typeof keyboardSetGameBPM === 'function') keyboardSetGameBPM(BPM * speed);
   if (typeof bassSetGameBPM     === 'function') bassSetGameBPM(BPM * speed);
+  // if (typeof drumSONG_BPM !== 'undefined') drumSONG_BPM = BPM * speed;
   
   // 4. 스크롤 속도 조절 (주의점 참고)
   if (typeof keyboardSCROLL_SPEED !== 'undefined') keyboardSCROLL_SPEED = (windowHeight * 0.6);
@@ -478,6 +482,30 @@ function drawSongCard(i) {
     fill(180, 100, 60, 180);
     text("⚠ 타임라인 미정", r.x + r.w - 12, r.y + r.h - 8);
   }
+
+  // 🥁 DRUM EXPERT 토글 버튼 (카드 우하단)
+  let exBtnW = 120, exBtnH = 26;
+  let exBtnX = r.x + r.w - exBtnW - 12;
+  let exBtnY = r.y + r.h - exBtnH - 10;
+  let exHov  = (mouseX > exBtnX && mouseX < exBtnX + exBtnW &&
+                mouseY > exBtnY && mouseY < exBtnY + exBtnH);
+  push();
+  rectMode(CORNER);
+  // 배경
+  if (drumExpertOn) {
+    fill(255, 80, 50, exHov ? 220 : 180);
+    stroke(255, 120, 80); strokeWeight(1.5);
+  } else {
+    fill(30, 40, 60, exHov ? 220 : 180);
+    stroke(80, 100, 140); strokeWeight(1);
+  }
+  rect(exBtnX, exBtnY, exBtnW, exBtnH, 5);
+  // 라벨
+  noStroke(); textAlign(CENTER, CENTER); textStyle(BOLD); textSize(10);
+  fill(drumExpertOn ? color(255, 255, 255) : color(140, 160, 190));
+  text("DRUM EXPERT: " + (drumExpertOn ? "ON" : "OFF"), exBtnX + exBtnW / 2, exBtnY + exBtnH / 2);
+  pop();
+
   pop();
 }
 
@@ -531,6 +559,7 @@ function startEnsembleGame() {
 
   if (typeof keyboardCreateChart === 'function') keyboardCreateChart();
   if (typeof bassCreateChart     === 'function') bassCreateChart();
+  if (typeof drumExpertMode !== 'undefined') drumExpertMode = drumExpertOn;
   if (typeof drumCreateChart     === 'function') drumCreateChart();
 }
 
@@ -942,6 +971,17 @@ function mousePressed() {
     if(mouseX>bk.x&&mouseX<bk.x+bk.w&&mouseY>bk.y&&mouseY<bk.y+bk.h){
       screenState='start'; return;
     }
+    // 🥁 Drum Expert 토글 버튼 클릭 (카드 클릭보다 먼저 처리)
+    for(let i=0;i<songCardRects.length;i++){
+      let r=songCardRects[i];
+      let exBtnW=120, exBtnH=26;
+      let exBtnX=r.x+r.w-exBtnW-12;
+      let exBtnY=r.y+r.h-exBtnH-10;
+      if(mouseX>exBtnX&&mouseX<exBtnX+exBtnW&&mouseY>exBtnY&&mouseY<exBtnY+exBtnH){
+        drumExpertOn = !drumExpertOn; return;
+      }
+    }
+
     // 곡 카드 선택
     for(let i=0;i<songCardRects.length;i++){
       let r=songCardRects[i];
