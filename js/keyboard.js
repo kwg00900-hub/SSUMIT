@@ -241,16 +241,16 @@ function keyboardCreateChart() {
   keyboard_nr(5, 0.5);        // beat 15.0
 
   keyboardSeek(15.5);
-  keyboard_hr(4, 1.5, 0.0);   // beat 15.5, 홀드 1.5
+  keyboard_hr(4, 1.0, 0.5);   // beat 15.5, 홀드 1.5
 
   keyboardSeek(17.0);
-  keyboard_hr(3, 1.0, 0.0);   // beat 17.0, 홀드 1.0
+  keyboard_hr(3, 0.5, 0.5);   // beat 17.0, 홀드 1.0
 
   keyboardSeek(18.0);
-  keyboard_hr(2, 1.0, 0.0);   // beat 18.0, 홀드 1.0
+  keyboard_hr(2, 0.5, 0.5);   // beat 18.0, 홀드 1.0
 
   keyboardSeek(19.0);
-  keyboard_hr(1, 1.0, 0.0);   // beat 19.0, 홀드 1.0
+  keyboard_hr(1, 0.5, 0.5);   // beat 19.0, 홀드 1.0
 
   keyboardSeek(20.0);
   keyboard_hr(2, 2.0, 1.0);   // beat 20.0, 홀드 2.0, 쉼 1.0 → beat 23.0
@@ -263,19 +263,19 @@ function keyboardCreateChart() {
   keyboard_nr(1, 2.5);        // beat 25.5  → 쉼 2.5 → beat 28.0
 
   keyboardSeek(28.0);
-  keyboard_hr(2, 1.0, 0.0);   // beat 28.0, 홀드 1.0
+  keyboard_hr(2, 0.5, 0.5);   // beat 28.0, 홀드 1.0
 
   keyboardSeek(29.0);
-  keyboard_hr(3, 1.0, 0.0);   // beat 29.0, 홀드 1.0
+  keyboard_hr(3, 0.5, 0.5);   // beat 29.0, 홀드 1.0
 
   keyboardSeek(30.0);
-  keyboard_hr(4, 1.0, 0.0);   // beat 30.0, 홀드 1.0
+  keyboard_hr(4, 0.5, 0.5);   // beat 30.0, 홀드 1.0
 
   keyboardSeek(31.0);
-  keyboard_hr(5, 1.0, 0.0);   // beat 31.0, 홀드 1.0
+  keyboard_hr(5, 0.5, 0.5);   // beat 31.0, 홀드 1.0
 
   keyboardSeek(32.0);
-  keyboard_hr(6, 2.0, 0.0);   // beat 32.0, 홀드 2.0
+  keyboard_hr(6, 2.0, 130.0);   // beat 32.0, 홀드 2.0
 
   // ================================================================
   // 구간 2: 너에게 하고픈 말은 (beat 164 ~)
@@ -290,7 +290,7 @@ function keyboardCreateChart() {
   keyboard_nr(4, 1.0);        // beat 168.5
 
   keyboardSeek(169.5);
-  keyboard_nr(3, 2.5);        // beat 169.5 → 쉼 2.5 → beat 172.0
+  keyboard_nr(3, 2.5);       // beat 169.5 → 쉼 2.5 → beat 172.0
 
   keyboardSeek(172.0);
   keyboard_nr(3, 1.5);        // beat 172.0
@@ -305,7 +305,7 @@ function keyboardCreateChart() {
   keyboard_nr(0, 2.5);        // beat 177.5 → 쉼 2.5 → beat 180.0
 
   keyboardSeek(180.0);
-  keyboard_hr(4, 4.0, 0.0);   // beat 180.0, 홀드 4.0
+  keyboard_hr(4, 4.0, 77.0);   // beat 180.0, 홀드 4.0
 
   // ================================================================
   // 구간 3: 오 기다림 (beat 261 ~)
@@ -337,7 +337,7 @@ function keyboardCreateChart() {
   keyboard_hr(3, 2.0, 1.5);   // beat 276.0, 홀드 2.0, 쉼 1.5
 
   keyboardSeek(279.5);
-  keyboard_hr(4, 1.0, 0.0);   // beat 279.5, 홀드 1.0
+  keyboard_hr(4, 1.0, 35.5);   // beat 279.5, 홀드 1.0
 
   // ================================================================
   // 구간 4: (beat 316 ~)
