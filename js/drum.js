@@ -425,12 +425,12 @@ function drumCheckHit(pressedType) {
         if (timeDiff <= 35) {
           textResult = "PERFECT";
           colorResult = drumCOLOR.PERFECT;
-          drumScore += 1000;
+          drumScore += 100;
           drumCombo += 1;
         } else {
           textResult = "GREAT";
           colorResult = drumCOLOR.GREAT;
-          drumScore += 500;
+          drumScore += 50;
           drumCombo += 1;
         }
 
