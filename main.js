@@ -134,7 +134,7 @@ let mainPrevFrame;
 let rightCircleTriggered = false;
 let rightTriggerTime     = 0;
 let motionSuccessList    = {};
-let imgBassSSU, imgDrumSSU;
+let imgBassSSU, imgDrumSSU, imgKeyboardSSU;
 
 // ============================================
 // 🔧 배속 및 설정 적용
@@ -168,6 +168,7 @@ function preload() {
   masterBgm = loadSound(SONG_LIST[0].file);
   imgBassSSU = loadImage('assets/bass_ssu.png');
   imgDrumSSU = loadImage('assets/drum_ssu.png');
+  imgKeyboardSSU = loadImage('assets/keyboard_ssu.png')
   
   if (typeof keyboardPreload === 'function') keyboardPreload();
   if (typeof bassPreload     === 'function') bassPreload();
@@ -705,6 +706,11 @@ function drawStartScreen() {
     let dW = width * 0.22; 
     let dH = (imgDrumSSU.height / imgDrumSSU.width) * dW;
     image(imgDrumSSU, width * 0.85, height * 0.70, dW, dH);
+  }
+  if (imgKeyboardSSU) {
+    let kW = width * 0.22; 
+    let kH = (imgKeyboardSSU.height / imgKeyboardSSU.width) * kW;
+    image(imgKeyboardSSU, width * 0.15, height * 0.80, kW, kH);
   }
   pop();
 
