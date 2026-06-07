@@ -162,6 +162,10 @@ function applySpeed(speed) {
 // ============================================
 function preload() {
   masterBgm = loadSound(SONG_LIST[0].file);
+
+  imgBassSSU = loadImage('assets/bass_ssu.png');
+  imgDrumSSU = loadImage('assets/drum_ssu.png');
+  
   if (typeof keyboardPreload === 'function') keyboardPreload();
   if (typeof bassPreload     === 'function') bassPreload();
   if (typeof drumPreload     === 'function') drumPreload();
@@ -569,6 +573,22 @@ function drawBackgroundGrid() {
 }
 
 function drawStartScreen() {
+  push();
+  imageMode(CENTER);
+
+  if (imgBassSSU) {
+    let bW = width * 0.20; // 화면 너비의 20% 크기
+    let bH = (imgBassSSU.height / imgBassSSU.width) * bW; 
+    image(imgBassSSU, width * 0.15, height * 0.30, bW, bH);
+  }
+
+  if (imgDrumSSU) {
+    let dW = width * 0.22; // 드럼은 조금 더 강조하기 위해 22% 크기
+    let dH = (imgDrumSSU.height / imgDrumSSU.width) * dW;
+    image(imgDrumSSU, width * 0.85, height * 0.70, dW, dH);
+  }
+
+  pop();
   push(); textAlign(CENTER,CENTER); textStyle(BOLD);
   textSize(84); fill(0,230,255,30); text("SSUMIT",width/2+3,height/2-97);
   fill(0,230,255); text("SSUMIT",width/2,height/2-100);
