@@ -175,25 +175,25 @@ function drumCreateChart() {
   drumRest(drumNOTE_1);  drumRest(drumNOTE_1);  drumRest(drumNOTE_1);  drumRest(drumNOTE_1);
   drumRest(drumNOTE_1);  drumRest(drumNOTE_1);  drumRest(drumNOTE_1);  drumRest(drumNOTE_1);
 
-  drumRest(drumNOTE_1);
+  drumRest(drumNOTE_1); // 33마디
 
   drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
-  drumRest(drumNOTE_8);
 
   drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
   drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_8);
-  drumRest(drumNOTE_8);
 
   drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
@@ -313,10 +313,11 @@ function drumCreateChart() {
   drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
-  drumRest(drumNOTE_8);
+  // drumRest(drumNOTE_8);
 
   drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
