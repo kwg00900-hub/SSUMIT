@@ -307,7 +307,7 @@ function keyboardCreateChart() {
   keyboard_nr(2, 0.5, 0.0);   // beat 180.0, 홀드 4.0
   keyboard_nr(5, 0.5, 0.0);   // beat 180.0, 홀드 4.0
   keyboard_nr(3, 0.5, 0.0);   // beat 180.0, 홀드 4.0
-  keyboard_nr(6, 0.5, 69.5);   // beat 180.0, 홀드 4.0
+  keyboard_nr(7, 0.5, 69.5);   // beat 180.0, 홀드 4.0
   
 
   // ================================================================
@@ -552,7 +552,7 @@ function keyboardCheckMissedNotes() {
           note.active = false;
           note.holding = false;
           
-          keyboardScore += 1000;
+          keyboardScore += 100;
           keyboardCombo++;
           if (keyboardCombo > keyboardMaxCombo) keyboardMaxCombo = keyboardCombo;
           keyboardComboScale = 1.3;
@@ -835,12 +835,12 @@ function keyboardHandleInput(lane) {
     if (minTimeDiff <= maxPerfectWindow) {
       judgment = 'PERFECT';
       effectColor = [255, 255, 100];
-      scoreGain = 1000;
+      scoreGain = 100;
       keyboardCombo++;
     } else {
       judgment = 'GREAT';
       effectColor = [255, 220, 0]; // 베이스와 동일한 노란/주황빛 계열
-      scoreGain = 500;
+      scoreGain = 50;
       keyboardCombo++;
     }
     
