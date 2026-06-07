@@ -38,6 +38,26 @@ let drumNotes = [];
 // 🌟 히트 이펙트 시스템 (베이스 스타일 통일)
 let drumHitEffects = [];
 
+// 🌟 드럼킷 플래시 상태 (타격 시 해당 악기 하얗게)
+let drumKitFlash = {
+  Hihat: 0, Ride: 0, Crash: 0,
+  Snare: 0, Tom1: 0, Tom2: 0, FloorTom: 0, Kick: 0,
+  CrashLeft: 0, CrashRight: 0
+};
+const drumFLASH_DURATION = 120; // ms
+
+// 🌟 악기별 노트 색상 (파장·플래시 공통 사용)
+const drumNOTE_COLORS = {
+  Crash:    [255, 140,   0],
+  Hihat:    [255,   0, 255],
+  Ride:     [180, 100, 255],
+  Snare:    [255, 255, 255],
+  Tom1:     [  0, 200, 255],
+  Tom2:     [255, 220,   0],
+  FloorTom: [ 80, 255, 120],
+  Kick:     [255,  80,  50],
+};
+
 // 🌟 판정 색상 (베이스와 통일)
 const drumCOLOR = {
   PERFECT: [0, 255, 200],
@@ -417,14 +437,18 @@ function drumCheckHit(pressedType) {
           yOffset: offset
         });
 
-        // 🌟 히트 이펙트 스폰 (베이스의 링 확산 스타일)
+        // 🌟 히트 이펙트 스폰 — 노트 색깔로 파장
+        let noteColor = drumNOTE_COLORS[pressedType] || colorResult;
         drumHitEffects.push({
           x: 150, // targetLine X
           y: note.y,
           time: millis(),
-          color: colorResult,
-          sizeFactor: textResult === 'PERFECT' ? 1.8 : 1.3
+          color: noteColor,
+          sizeFactor: textResult === 'PERFECT' ? 1.4 : 1.0
         });
+
+        // 🌟 드럼킷 플래시 트리거
+        drumKitFlash[pressedType] = millis();
 
         drumNotes.splice(i, 1);
         return;
@@ -481,7 +505,12 @@ function drumDraw() {
 
   let leftCircleHit = drumCheckCircleMotion(320, 95, 30);
   let rightCircleHit = drumCheckCircleMotion(80, 95, 30);
-  if (leftCircleHit || rightCircleHit) drumCheckHit("Crash");
+  if (leftCircleHit || rightCircleHit) {
+    drumCheckHit("Crash");
+    // 카메라 좌우에 따라 다른 심벌 플래시 (rightCircleHit=왼쪽손→오른쪽심벌 CAM, leftCircleHit=오른쪽)
+    if (rightCircleHit) drumKitFlash['CrashRight'] = millis();
+    if (leftCircleHit)  drumKitFlash['CrashLeft']  = millis();
+  }
   drumPrevFrame.copy(drumCapture, 0, 0, 400, 150, 0, 0, 400, 150);
 
   // 카메라 프레임 (네온 스타일)
@@ -592,29 +621,119 @@ function drumDraw() {
   }
   pop();
 
-  // 드럼셋 시각화
-  push();
-  let drumY = 550;
-  textAlign(CENTER, CENTER); textSize(24); textStyle(BOLD);
-  stroke(80, 80, 120, 100); strokeWeight(2); line(250, drumY + 150, 250, drumY + 20); fill(30); ellipse(250, drumY + 20, 100, 20); fill(255, 0, 255); noStroke(); textSize(35); text("R", 250, drumY - 10);
-  stroke(80, 80, 120, 100); strokeWeight(2); fill(30); ellipse(350, drumY + 100, 100, 30); line(300, drumY + 100, 300, drumY + 160); line(400, drumY + 100, 400, drumY + 160); arc(350, drumY + 160, 100, 30, 0, PI); fill(255); noStroke(); textSize(24); text("U", 350, drumY + 100);
-  stroke(80, 80, 120, 100); strokeWeight(2); fill(30); ellipse(450, drumY, 80, 80); fill(0, 200, 255); noStroke(); text("I", 450, drumY);
-  stroke(80, 80, 120, 100); strokeWeight(2); fill(30); ellipse(550, drumY, 80, 80); fill(255, 220, 0); noStroke(); text("F", 550, drumY);
+  // 드럼셋 시각화 (심벌 포함, 플래시 지원)
+  drumDrawKit();
 
-  push();
-  let pedalX = 480; let pedalY = drumY + 110;
-  stroke(80, 80, 120, 100); strokeWeight(2); fill(40); rect(pedalX - 15, pedalY + 30, 30, 40, 5);
-  fill(60); beginShape(); vertex(pedalX - 10, pedalY + 35); vertex(pedalX + 10, pedalY + 35); vertex(pedalX + 13, pedalY + 65); vertex(pedalX - 13, pedalY + 65); endShape(CLOSE);
-  stroke(80, 80, 120, 100); strokeWeight(3); line(pedalX, pedalY + 30, pedalX, pedalY - 5);
-  fill(255); noStroke(); circle(pedalX, pedalY - 5, 14);
-  fill(255, 80, 50); textAlign(CENTER, CENTER); textSize(16); textStyle(BOLD); text("space", pedalX, pedalY + 15);
-  pop();
-
-  stroke(80, 80, 120, 100); strokeWeight(2); fill(30); ellipse(650, drumY + 110, 120, 40); line(590, drumY + 110, 590, drumY + 180); line(710, drumY + 110, 710, drumY + 180); arc(650, drumY + 180, 120, 40, 0, PI); fill(80, 255, 120); noStroke(); textSize(24); text("H", 650, drumY + 110);
-  stroke(80, 80, 120, 100); strokeWeight(2); line(780, drumY + 180, 780, drumY - 10); fill(30); ellipse(780, drumY - 10, 120, 20); fill(180, 100, 255); noStroke(); textSize(35); text("E", 780, drumY - 40);
-  pop();
 
   drumDrawUI(currentSongTime);
+  pop();
+}
+
+// 드럼킷 플래시 헬퍼
+function kitColor(type, baseR, baseG, baseB) {
+  let t = drumKitFlash[type] || 0;
+  let age = millis() - t;
+  if (age < drumFLASH_DURATION) {
+    let f = 1 - age / drumFLASH_DURATION;
+    return [lerp(baseR,255,f), lerp(baseG,255,f), lerp(baseB,255,f)];
+  }
+  return [baseR, baseG, baseB];
+}
+
+function drumDrawKit() {
+  push();
+  let drumY = 550;
+  let now = millis();
+  textAlign(CENTER, CENTER); textSize(24); textStyle(BOLD);
+
+  // ── 왼쪽 히햇 심벌 (R, 마젠타) ──────────────────────
+  let hhC = kitColor('Hihat', 80, 0, 80);
+  stroke(80, 80, 120, 100); strokeWeight(2);
+  line(250, drumY + 150, 250, drumY + 20);
+  fill(hhC[0], hhC[1], hhC[2]); noStroke();
+  ellipse(250, drumY + 20, 100, 20);
+  fill(255, 0, 255); textSize(35); text("R", 250, drumY - 10);
+
+  // ── 스네어 (U, 흰색) ─────────────────────────────────
+  let snC = kitColor('Snare', 30, 30, 30);
+  stroke(80, 80, 120, 100); strokeWeight(2);
+  fill(snC[0], snC[1], snC[2]);
+  ellipse(350, drumY + 100, 100, 30);
+  line(300, drumY + 100, 300, drumY + 160);
+  line(400, drumY + 100, 400, drumY + 160);
+  arc(350, drumY + 160, 100, 30, 0, PI);
+  fill(255); noStroke(); textSize(24); text("U", 350, drumY + 100);
+
+  // ── Tom1 (I, 하늘색) ─────────────────────────────────
+  let t1C = kitColor('Tom1', 0, 30, 50);
+  stroke(80, 80, 120, 100); strokeWeight(2);
+  fill(t1C[0], t1C[1], t1C[2]);
+  ellipse(450, drumY, 80, 80);
+  fill(0, 200, 255); noStroke(); textSize(24); text("I", 450, drumY);
+
+  // ── Tom2 (F, 노란색) ─────────────────────────────────
+  let t2C = kitColor('Tom2', 50, 44, 0);
+  stroke(80, 80, 120, 100); strokeWeight(2);
+  fill(t2C[0], t2C[1], t2C[2]);
+  ellipse(550, drumY, 80, 80);
+  fill(255, 220, 0); noStroke(); textSize(24); text("F", 550, drumY);
+
+  // ── 바스드럼 페달 + Kick ──────────────────────────────
+  push();
+  let pedalX = 480; let pedalY = drumY + 110;
+  let kkC = kitColor('Kick', 40, 15, 10);
+  stroke(80, 80, 120, 100); strokeWeight(2);
+  fill(kkC[0], kkC[1], kkC[2]); rect(pedalX - 15, pedalY + 30, 30, 40, 5);
+  let kickAge = now - (drumKitFlash.Kick || 0);
+  let kickF = max(0, 1 - kickAge / drumFLASH_DURATION);
+  fill(lerp(60, 255, kickF));
+  beginShape();
+  vertex(pedalX-10,pedalY+35); vertex(pedalX+10,pedalY+35);
+  vertex(pedalX+13,pedalY+65); vertex(pedalX-13,pedalY+65);
+  endShape(CLOSE);
+  stroke(80, 80, 120, 100); strokeWeight(3); line(pedalX, pedalY+30, pedalX, pedalY-5);
+  fill(255); noStroke(); circle(pedalX, pedalY-5, 14);
+  fill(255, 80, 50); textAlign(CENTER,CENTER); textSize(16); textStyle(BOLD); text("space", pedalX, pedalY+15);
+  pop();
+
+  // ── FloorTom (H, 연두색) ──────────────────────────────
+  let flC = kitColor('FloorTom', 10, 40, 15);
+  stroke(80, 80, 120, 100); strokeWeight(2);
+  fill(flC[0], flC[1], flC[2]);
+  ellipse(650, drumY + 110, 120, 40);
+  line(590, drumY+110, 590, drumY+180);
+  line(710, drumY+110, 710, drumY+180);
+  arc(650, drumY+180, 120, 40, 0, PI);
+  fill(80, 255, 120); noStroke(); textSize(24); text("H", 650, drumY+110);
+
+  // ── 오른쪽 라이드 심벌 (E, 연보라) ──────────────────
+  let rdC = kitColor('Ride', 30, 15, 50);
+  stroke(80, 80, 120, 100); strokeWeight(2);
+  line(780, drumY+180, 780, drumY-10);
+  fill(rdC[0], rdC[1], rdC[2]); noStroke();
+  ellipse(780, drumY-10, 120, 20);
+  fill(180, 100, 255); textSize(35); text("E", 780, drumY-40);
+
+  // ── 왼쪽 크래시 심벌 (CAM-Left, 오렌지) ─────────────
+  let crLC = kitColor('CrashLeft', 50, 28, 0);
+  stroke(80, 80, 120, 100); strokeWeight(2);
+  line(150, drumY+180, 150, drumY-30);
+  fill(crLC[0], crLC[1], crLC[2]); noStroke();
+  ellipse(150, drumY-30, 130, 22);
+  stroke(255, 140, 0); strokeWeight(2); noFill();
+  line(135, drumY-38, 165, drumY-22); line(165, drumY-38, 135, drumY-22);
+  fill(255, 140, 0); noStroke(); textSize(15); text("CAM", 150, drumY-56);
+
+  // ── 오른쪽 크래시 심벌 (CAM-Right, 오렌지) ───────────
+  let crRC = kitColor('CrashRight', 50, 28, 0);
+  stroke(80, 80, 120, 100); strokeWeight(2);
+  line(880, drumY+180, 880, drumY-30);
+  fill(crRC[0], crRC[1], crRC[2]); noStroke();
+  ellipse(880, drumY-30, 130, 22);
+  stroke(255, 140, 0); strokeWeight(2); noFill();
+  line(865, drumY-38, 895, drumY-22); line(895, drumY-38, 865, drumY-22);
+  fill(255, 140, 0); noStroke(); textSize(15); text("CAM", 880, drumY-56);
+
   pop();
 }
 
@@ -632,7 +751,7 @@ function drumDrawHitEffects() {
 
     let progress = age / maxAge;
     let alpha = 255 * (1 - progress);
-    let size = (30 * fx.sizeFactor) * (0.4 + progress * 1.4);
+    let size = (22 * fx.sizeFactor) * (0.4 + progress * 1.0);
 
     noFill();
     stroke(fx.color[0], fx.color[1], fx.color[2], alpha);
