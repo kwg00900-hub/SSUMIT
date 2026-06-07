@@ -1,6 +1,9 @@
 let drumScore = 0;
 let drumCombo = 0;
 
+// 🥁 Expert 모드: false면 Hihat/Ride 노트 제외
+let drumExpertMode = true;
+
 // ==========================================
 // [설정] 박자/시간 동기화용 변수
 // ==========================================
@@ -33,6 +36,7 @@ let drumYFloor  = 325;
 let drumYKick   = 355;
 
 let drumJudgeList = [];
+let drumConsumedKey = false; // F키 등 충돌 방지용
 let drumNotes = [];
 
 // 🌟 히트 이펙트 시스템 (베이스 스타일 통일)
@@ -75,6 +79,9 @@ function drumBeatToTime(beat) {
 }
 
 function drumAddNote(type) {
+  // Expert OFF면 Hihat/Ride 노트 추가 안 함
+  if (!drumExpertMode && (type === 'Hihat' || type === 'Ride')) return;
+
   let targetY = drumYSnare;
   if (type === 'Ride') targetY = drumYRide;
   else if (type === 'Hihat') targetY = drumYHihat;
@@ -386,14 +393,14 @@ function drumKeyPressed() {
     let fs = fullscreen();
     fullscreen(!fs);
     resizeCanvas(windowWidth, windowHeight);
-    return;
+    return false;
   }
 
   let pressedType = "";
   if (key === ' ') pressedType = "Kick";
   else if (key === 'u' || key === 'U') pressedType = "Snare";
   else if (key === 'i' || key === 'I') pressedType = "Tom1";
-  else if (key === 'f' || key === 'F') pressedType = "Tom2";
+  else if (key === 'f' || key === 'F') { pressedType = "Tom2"; drumConsumedKey = true; }
   else if (key === 'h' || key === 'H') pressedType = "FloorTom";
   else if (key === 'r' || key === 'R') pressedType = "Hihat";
   else if (key === 'e' || key === 'E') pressedType = "Ride";
@@ -503,8 +510,8 @@ function drumDraw() {
   image(drumCapture, 0, 0, 400, 150);
   pop();
 
-  let leftCircleHit = drumCheckCircleMotion(320, 95, 30);
-  let rightCircleHit = drumCheckCircleMotion(80, 95, 30);
+  let leftCircleHit = drumCheckCircleMotion(320, 95, 55);
+  let rightCircleHit = drumCheckCircleMotion(80, 95, 55);
   if (leftCircleHit || rightCircleHit) {
     drumCheckHit("Crash");
     // 카메라 좌우에 따라 다른 심벌 플래시 (rightCircleHit=왼쪽손→오른쪽심벌 CAM, leftCircleHit=오른쪽)
@@ -522,8 +529,8 @@ function drumDraw() {
   // 모션 감지 원 (베이스 시안 톤 통일)
   push();
   stroke(0, 255, 200, 150); strokeWeight(3); noFill();
-  circle(380, 95, 60);
-  circle(620, 95, 60);
+  circle(380, 95, 110);
+  circle(620, 95, 110);
   pop();
 
   // 🌟 오선지 (양쪽 끝까지 확장 → 뿅 사라짐 방지)
