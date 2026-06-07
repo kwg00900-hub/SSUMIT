@@ -20,6 +20,19 @@ let keyboardIsGameStarted = false;
 let keyboardJumpStartTime = 0;       
 let keyboardTargetStartTimeSec = 0;  
 
+// ============================================
+// 🌟 밀리초(ms) 기반 판정 기준 오차 정의 (PERFECT, GREAT, MISS 3단계)
+// ============================================
+const keyboardJUDGE_WINDOW = {
+  // 1. 일찍 치는 경우 (Early) 허용 범위 - 노트가 판정선에 오기 전
+  EARLY_PERFECT: 90,   // 판정선 전 90ms 이내
+  EARLY_GREAT: 220,    // 판정선 전 220ms까지 인정 (일찍 쳐도 입력 허용!)
+
+  // 2. 늦게 치는 경우 (Late) 허용 범위 - 노트가 판정선을 지나간 후
+  LATE_PERFECT: 90,    // 판정선 지난 후 90ms 이내
+  LATE_GREAT: 100      // 판정선 지난 후 100ms까지만 인정 (이 시간이 지나면 MISS 처리)
+};
+
 //==========================================BPM
 let keyboardGameBPM = 126;
 
@@ -524,20 +537,25 @@ function keyboardDrawNotes() {
 }
 
 function keyboardCheckMissedNotes() {
+  let playTime = keyboardCurrentTime + keyboardAUDIO_OFFSET;
+
   for (let note of keyboardNotes) {
     if (note.active && !note.missed) {
       
+      // 단타 노트 미스 체크
       if (note.type === 'short') {
-        let noteY = keyboardCalcNoteY(note.time);
-        if (noteY > keyboardJudgeLine + 80) {  
-          keyboardTriggerMiss(note, 'MISS (OVER)');
+        if (playTime > note.time + keyboardJUDGE_WINDOW.LATE_GREAT) {  
+          keyboardTriggerMiss(note, 'MISS');
         }
-      } else if (note.type === 'hold') {
-        let noteY = keyboardCalcNoteY(note.time);
-        if (!note.headHit && noteY > keyboardJudgeLine + 80) {
-          keyboardTriggerMiss(note, 'MISS (OVER)');
+      } 
+      // 롱노트 미스 체크
+      else if (note.type === 'hold') {
+        // 머리를 못 누르고 지나간 경우
+        if (!note.headHit && playTime > note.time + keyboardJUDGE_WINDOW.LATE_GREAT) {
+          keyboardTriggerMiss(note, 'MISS');
         }
-        else if (note.holding && (keyboardCurrentTime + keyboardAUDIO_OFFSET) >= note.endTime) {
+        // 홀드 도중 끝나는 시점에 도달해 정상 클리어된 경우
+        else if (note.holding && playTime >= note.endTime) {
           note.active = false;
           note.holding = false;
           
@@ -711,10 +729,10 @@ function keyboardDrawInfo() {
     textAlign(CENTER, CENTER);
     textSize(width * 0.035);
     
-    if (keyboardLastJudgment.text === 'PERFECT') fill(255, 255, 100);
-    else if (keyboardLastJudgment.text === 'GOOD') fill(100, 255, 100);
-    else if (keyboardLastJudgment.text === 'BAD') fill(255, 150, 100);
-    else fill(255, 50, 50);
+    // 🔥 [이 부분 변경됨] 기존 GOOD, BAD 제거하고 GREAT 추가!
+    if (keyboardLastJudgment.text === 'PERFECT') fill(255, 255, 100); // 노란색
+    else if (keyboardLastJudgment.text === 'GREAT') fill(255, 220, 0);   // 주황/연노랑색 (베이스와 동일)
+    else fill(255, 50, 50); // MISS (빨간색)
     
     text(keyboardLastJudgment.text, 0, 0);
     pop();
@@ -748,14 +766,15 @@ function keyboardKeyPressed() {
 
 function keyboardKeyReleased() {
   let lane = keyboardGetLaneFromKey(key);
+  let playTime = keyboardCurrentTime + keyboardAUDIO_OFFSET;
   
   if (lane !== -1) {
     for (let note of keyboardNotes) {
       if (note.lane === lane && note.active && note.type === 'hold' && note.holding) {
-        let noteYEnd = keyboardCalcNoteY(note.endTime);
-        let distFromJudge = Math.abs(keyboardJudgeLine - noteYEnd);
+        let timeDiff = note.endTime - playTime;
         
-        if (distFromJudge > 80 && note.endTime > (keyboardCurrentTime + keyboardAUDIO_OFFSET)) {
+        // 종료 타겟 시간보다 250ms 이상 일찍 떼버린 경우 브레이크 처리 (MISS)
+        if (timeDiff > 250) {
           note.active = false;
           note.holding = false;
           note.missed = true;
@@ -771,6 +790,7 @@ function keyboardKeyReleased() {
           };
           keyboardJudgmentTime = millis();
         } else {
+          // 판정 오차 안정권 내에서 정상적으로 손을 뗀 경우 처리 유지
           note.active = false;
           note.holding = false;
         }
@@ -781,47 +801,59 @@ function keyboardKeyReleased() {
 
 function keyboardHandleInput(lane) {
   let closestNote = null;
-  let minDistDiff = Infinity;
+  let minTimeDiff = Infinity;
+  let playTime = keyboardCurrentTime + keyboardAUDIO_OFFSET;
+  let isEarly = false;
   
   for (let note of keyboardNotes) {
     if (note.lane === lane && note.active) {
       if (note.type === 'hold' && note.headHit) continue;
       
-      let noteY = keyboardCalcNoteY(note.time);
-      let distDiff = Math.abs(keyboardJudgeLine - noteY); 
+      let timeDiff = note.time - playTime; 
+      let absDiff = Math.abs(timeDiff);
       
-      if (distDiff < minDistDiff) {
-        minDistDiff = distDiff;
-        closestNote = note;
+      // Early 판정 윈도우 검사
+      if (timeDiff >= 0 && absDiff <= keyboardJUDGE_WINDOW.EARLY_GREAT) {
+        if (absDiff < minTimeDiff) {
+          minTimeDiff = absDiff;
+          closestNote = note;
+          isEarly = true;
+        }
+      } 
+      // Late 판정 윈도우 검사
+      else if (timeDiff < 0 && absDiff <= keyboardJUDGE_WINDOW.LATE_GREAT) {
+        if (absDiff < minTimeDiff) {
+          minTimeDiff = absDiff;
+          closestNote = note;
+          isEarly = false;
+        }
       }
     }
   }
   
-  if (closestNote && minDistDiff < 80) {
+  if (closestNote) {
     let judgment = '';
     let effectColor = [255, 255, 255];
     let scoreGain = 0;
     
-    if (minDistDiff < 15) {
+    let maxPerfectWindow = isEarly ? keyboardJUDGE_WINDOW.EARLY_PERFECT : keyboardJUDGE_WINDOW.LATE_PERFECT;
+    
+    // 3단계 판정 세팅 (PERFECT / GREAT) -> 범위를 벗어나면 위 Miss 시스템에서 걸러짐
+    if (minTimeDiff <= maxPerfectWindow) {
       judgment = 'PERFECT';
       effectColor = [255, 255, 100];
       scoreGain = 1000;
       keyboardCombo++;
-    } else if (minDistDiff < 40) {
-      judgment = 'GOOD';
-      effectColor = [100, 255, 100];
+    } else {
+      judgment = 'GREAT';
+      effectColor = [255, 220, 0]; // 베이스와 동일한 노란/주황빛 계열
       scoreGain = 500;
       keyboardCombo++;
-    } else {
-      judgment = 'BAD';
-      effectColor = [255, 150, 100];
-      scoreGain = 200;
-      keyboardCombo = 0;
     }
     
     keyboardScore += scoreGain;
     if (keyboardCombo > keyboardMaxCombo) keyboardMaxCombo = keyboardCombo;
-    if (scoreGain > 200) keyboardComboScale = 1.35; 
+    keyboardComboScale = 1.35; 
 
     if (closestNote.type === 'short') {
       closestNote.active = false; 
@@ -830,11 +862,12 @@ function keyboardHandleInput(lane) {
       closestNote.holding = true; 
     }
     
+    let directionLabel = isEarly ? "FAST" : "SLOW";
     keyboardLastJudgment = {
       text: judgment,
       note: keyboardGetNoteName(lane),
       key: keyboardGetKeyLabel(lane),
-      timing: `${minDistDiff.toFixed(1)}px`, 
+      timing: `${minTimeDiff.toFixed(0)}ms (${directionLabel})`, 
       startScale: 1.2
     };
     keyboardJudgmentTime = millis();
