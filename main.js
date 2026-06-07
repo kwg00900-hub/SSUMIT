@@ -1,90 +1,165 @@
 // ===================================================
-// [통합 최종 리팩토링] 모션 악보 넘기기 + 세련된 결과 화면 스타일 반영 + 일시정지 기능 (main.js)
+// main.js — 시작화면 → 곡선택화면 → 게임
 // ===================================================
 
 let masterBgm;
 let globalSongTime = 0;
-let isSongPlaying = false;
-let isHelpVisible = false;
-let isGameEnded = false;
-let isGameOver = false;
-let isPaused = false; // 🆕 일시정지 상태
+let isSongPlaying  = false;
+let isHelpVisible  = false;
+let isGameEnded    = false;
+let isGameOver     = false;
+let isPaused       = false;
 
-// 🆕 일시정지 관련 변수
-let pausedTime = 0; // 일시정지된 시점의 곡 시간
-let pauseBtn; // ESC 안내용 (선택)
+// 화면 상태: 'start' | 'select' | 'game'
+let screenState = 'start';
 
-// 🏆 [수정 가능] 등급별 최종 점수 기준 컷라인
-const GRADE_CUTLINE = {
-  S: 15000,
-  A: 10000,
-  B: 5000
-};
+// ⏸️ 일시정지
+let pausedTime = 0;
 
-// 🔘 UI 요소 관리 (시작 화면용 p5.js 내장 버튼 위치)
-let uiButtons = {
-  start:  { x: 0, y: 0, w: 240, h: 55, label: "START GAME" },
-  help:   { x: 0, y: 0, w: 240, h: 55, label: "HOW TO PLAY" },
-  full:   { x: 0, y: 0, w: 140, h: 40, label: "FULLSCREEN" }
-};
+// 🎚️ 배속
+let selectedSpeed = 1.0;
+const SPEED_OPTIONS = [0.5, 0.75, 1.0, 1.25, 1.5];
+const SPEED_LABELS  = ['0.5x', '0.75x', '1.0x', '1.25x', '1.5x'];
 
-// 🔘 결과 및 게임오버 화면용 DOM 버튼
-let restartBtn;
+// 🏆 등급 컷라인
+const GRADE_CUTLINE = { S: 15000, A: 10000, B: 5000 };
 
-// 🌟 타임라인 정의 (ms 단위)
-const SESSION_TIMELINE = {
-  KEYBOARD1: { start: 0,   end: 17043  },
-  BASS1:     { start: 17043,  end: 32281  },
-  DRUM1:     { start: 32281,  end: 47519  },
-  BASS2:     { start: 47519,  end: 62757  },
-  DRUM2:     { start: 62757,  end: 77995  },
-  KEYBOARD2: { start: 77995,  end: 93233  },
-  BASS3:     { start: 93233,  end: 108471 },
-  DRUM3:     { start: 108471, end: 123710 },
-  KEYBOARD3: { start: 123710, end: 138948 },
-  BASS4:     { start: 138948, end: 150376 },
-  KEYBOARD4: { start: 150376, end: 165614 },
-  DRUM4:     { start: 165614, end: 182757 }
-};
+// ============================================
+// 🎵 곡 목록 정의
+// ============================================
+const SONG_LIST = [
+  {
+    id:       'song1',
+    file:     '126.mp3',
+    title:    '투게더!',
+    subtitle: '잔나비',
+    bpm:      126,
+    sessions: ['🎹 KEYBOARD', '🎸 BASS', '🥁 DRUM'],
+    timeline: {
+      KEYBOARD1: { start: 0,      end: 17043  },
+      BASS1:     { start: 17043,  end: 32281  },
+      DRUM1:     { start: 32281,  end: 47519  },
+      BASS2:     { start: 47519,  end: 62757  },
+      DRUM2:     { start: 62757,  end: 77995  },
+      KEYBOARD2: { start: 77995,  end: 93233  },
+      BASS3:     { start: 93233,  end: 108471 },
+      DRUM3:     { start: 108471, end: 123710 },
+      KEYBOARD3: { start: 123710, end: 138948 },
+      BASS4:     { start: 138948, end: 150376 },
+      KEYBOARD4: { start: 150376, end: 165614 },
+      DRUM4:     { start: 165614, end: 182757 }
+    }
+  },
+  {
+    id:       'song2',
+    file:     'dance_dance.mp3',   // ← 파일명 확정 후 교체
+    title:    'Dance Dance',
+    subtitle: 'DAY6',
+    bpm:      152,
+    sessions: ['🎹 KEYBOARD', '🎸 BASS', '🥁 DRUM'],
+    timeline: {
+      // ⚠️ 타임라인 미정 — 확정 후 아래 값을 실제 ms로 교체하세요
+      KEYBOARD1: { start: 0,     end: 15000  },
+      BASS1:     { start: 15000, end: 30000  },
+      DRUM1:     { start: 30000, end: 45000  },
+      BASS2:     { start: 45000, end: 60000  },
+      DRUM2:     { start: 60000, end: 75000  },
+      KEYBOARD2: { start: 75000, end: 90000  },
+      BASS3:     { start: 90000, end: 105000 },
+      DRUM3:     { start: 105000,end: 120000 },
+      KEYBOARD3: { start: 120000,end: 135000 },
+      BASS4:     { start: 135000,end: 147000 },
+      KEYBOARD4: { start: 147000,end: 162000 },
+      DRUM4:     { start: 162000,end: 178000 }
+    }
+  }
+];
+
+// 현재 선택된 곡 인덱스
+let selectedSongIdx = 0;
+
+// 배속 적용 후 실제 타임라인
+let SESSION_TIMELINE = {};
 
 const SESSION_ORDER = [
   { key: "KEYBOARD1", type: "KEYBOARD", name: "KEYBOARD SESSION (1)" },
-  { key: "BASS1",     type: "BASS",     name: "BASS SESSION (1)" },
-  { key: "DRUM1",     type: "DRUM",     name: "DRUM SESSION (1)" },
-  { key: "BASS2",     type: "BASS",     name: "BASS SESSION (2)" },
-  { key: "DRUM2",     type: "DRUM",     name: "DRUM SESSION (2)" },
+  { key: "BASS1",     type: "BASS",     name: "BASS SESSION (1)"     },
+  { key: "DRUM1",     type: "DRUM",     name: "DRUM SESSION (1)"     },
+  { key: "BASS2",     type: "BASS",     name: "BASS SESSION (2)"     },
+  { key: "DRUM2",     type: "DRUM",     name: "DRUM SESSION (2)"     },
   { key: "KEYBOARD2", type: "KEYBOARD", name: "KEYBOARD SESSION (2)" },
-  { key: "BASS3",     type: "BASS",     name: "BASS SESSION (3)" },
-  { key: "DRUM3",     type: "DRUM",     name: "DRUM SESSION (3)" },
+  { key: "BASS3",     type: "BASS",     name: "BASS SESSION (3)"     },
+  { key: "DRUM3",     type: "DRUM",     name: "DRUM SESSION (3)"     },
   { key: "KEYBOARD3", type: "KEYBOARD", name: "KEYBOARD SESSION (3)" },
-  { key: "BASS4",     type: "BASS",     name: "BASS SESSION (4)" },
+  { key: "BASS4",     type: "BASS",     name: "BASS SESSION (4)"     },
   { key: "KEYBOARD4", type: "KEYBOARD", name: "KEYBOARD SESSION (4)" },
-  { key: "DRUM4",     type: "DRUM",     name: "DRUM SESSION (4)" }
+  { key: "DRUM4",     type: "DRUM",     name: "DRUM SESSION (4)"     }
 ];
 
-const BPM = 126;
-const ONE_BEAT_MS = (60 / BPM) * 1000;
-const FOUR_BEATS_MS = ONE_BEAT_MS * 4;
+let BPM = 126;
+let ONE_BEAT_MS;
+let FOUR_BEATS_MS;
+
+// 🔘 시작화면 버튼
+let uiButtons = {
+  start: { x: 0, y: 0, w: 240, h: 55, label: "START GAME" },
+  help:  { x: 0, y: 0, w: 240, h: 55, label: "HOW TO PLAY" },
+  full:  { x: 0, y: 0, w: 140, h: 40, label: "FULLSCREEN"  }
+};
+
+// 🔘 곡선택 화면 버튼
+let selectButtons = {
+  play: { x: 0, y: 0, w: 220, h: 55, label: "▶  PLAY" },
+  back: { x: 0, y: 0, w: 120, h: 42, label: "← BACK"  }
+};
+let speedButtons = [];  // 배속 버튼
+let songCardRects = []; // 곡 카드 클릭 영역
+
+// 🔘 결과/게임오버 DOM 버튼
+let restartBtn;
 
 let mainCapture;
 let mainPrevFrame;
 let rightCircleTriggered = false;
-let rightTriggerTime = 0;
-let motionSuccessList = {};
+let rightTriggerTime     = 0;
+let motionSuccessList    = {};
 
 // ============================================
-// 🔧 초기화 및 셋업
+// 🔧 배속 적용
+// ============================================
+function applySpeed(speed) {
+  selectedSpeed = speed;
+  let base = SONG_LIST[selectedSongIdx].timeline;
+
+  for (let key in base) {
+    SESSION_TIMELINE[key] = {
+      start: base[key].start / speed,
+      end:   base[key].end   / speed
+    };
+  }
+
+  BPM           = SONG_LIST[selectedSongIdx].bpm * speed;
+  ONE_BEAT_MS   = (60 / BPM) * 1000;
+  FOUR_BEATS_MS = ONE_BEAT_MS * 4;
+
+  if (typeof keyboardSetGameBPM === 'function') keyboardSetGameBPM(BPM);
+  if (typeof bassSetGameBPM     === 'function') bassSetGameBPM(BPM);
+  if (typeof keyboardSCROLL_SPEED !== 'undefined') keyboardSCROLL_SPEED = (windowHeight * 0.6) * speed;
+  if (typeof bassSCROLL_SPEED     !== 'undefined') bassSCROLL_SPEED     = (windowHeight * 0.6) * speed;
+}
+
+// ============================================
+// 🔧 초기화
 // ============================================
 function preload() {
-  masterBgm = loadSound('126.mp3');
+  masterBgm = loadSound(SONG_LIST[0].file);
   if (typeof keyboardPreload === 'function') keyboardPreload();
-  if (typeof bassPreload    === 'function') bassPreload();
-  if (typeof drumPreload    === 'function') drumPreload();
+  if (typeof bassPreload     === 'function') bassPreload();
+  if (typeof drumPreload     === 'function') drumPreload();
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-
   mainCapture = createCapture(VIDEO);
   mainCapture.size(400, 150);
   mainCapture.hide();
@@ -94,8 +169,9 @@ function setup() {
   if (typeof bassSetup     === 'function') bassSetup();
   if (typeof drumSetup     === 'function') drumSetup();
 
+  applySpeed(1.0);
   updateUIElements();
-  initRestartButton(); // PLAY AGAIN 버튼 생성
+  initRestartButton();
 }
 
 function windowResized() {
@@ -104,15 +180,46 @@ function windowResized() {
 }
 
 function updateUIElements() {
-  uiButtons.start.x  = width / 2 - 120;
-  uiButtons.start.y  = height / 2 + 40;
-  uiButtons.help.x   = width / 2 - 120;
-  uiButtons.help.y   = height / 2 + 115;
-  uiButtons.full.x   = width - 170;
-  uiButtons.full.y   = 20;
+  uiButtons.start.x = width / 2 - 120;
+  uiButtons.start.y = height / 2 + 40;
+  uiButtons.help.x  = width / 2 - 120;
+  uiButtons.help.y  = height / 2 + 115;
+  uiButtons.full.x  = width - 170;
+  uiButtons.full.y  = 20;
+
+  // PLAY / BACK 버튼
+  selectButtons.play.x = width / 2 - 110;
+  selectButtons.play.y = height * 0.85;
+  selectButtons.back.x = 40;
+  selectButtons.back.y = 30;
+
+  // 배속 버튼
+  speedButtons = [];
+  let bw = 84, bh = 38, gap = 8;
+  let totalW = SPEED_OPTIONS.length * bw + (SPEED_OPTIONS.length - 1) * gap;
+  let sx = width / 2 - totalW / 2;
+  let sy = height * 0.75;
+  for (let i = 0; i < SPEED_OPTIONS.length; i++) {
+    speedButtons.push({
+      x: sx + i * (bw + gap), y: sy,
+      w: bw, h: bh,
+      speed: SPEED_OPTIONS[i], label: SPEED_LABELS[i]
+    });
+  }
+
+  // 곡 카드 영역 (2개 가로 배열)
+  songCardRects = [];
+  let cardW = min(380, width * 0.38);
+  let cardH = 180;
+  let cardGap = 30;
+  let totalCardW = 2 * cardW + cardGap;
+  let cardStartX = width / 2 - totalCardW / 2;
+  let cardY = height * 0.18;
+  for (let i = 0; i < SONG_LIST.length; i++) {
+    songCardRects.push({ x: cardStartX + i * (cardW + cardGap), y: cardY, w: cardW, h: cardH });
+  }
 }
 
-// 🔘 DOM 버튼 생성 및 스타일링 (결과/게임오버 화면용)
 function initRestartButton() {
   restartBtn = createButton('PLAY AGAIN');
   restartBtn.style('background-color', '#00E5FF');
@@ -123,507 +230,242 @@ function initRestartButton() {
   restartBtn.style('border-radius', '8px');
   restartBtn.style('cursor', 'pointer');
   restartBtn.style('transition', 'all 0.2s ease');
-
   restartBtn.mouseOver(() => {
     restartBtn.style('transform', 'scale(1.05)');
-    restartBtn.style('box-shadow', '0px 0px 15px rgba(0, 229, 255, 0.5)');
+    restartBtn.style('box-shadow', '0px 0px 15px rgba(0,229,255,0.5)');
   });
   restartBtn.mouseOut(() => {
     restartBtn.style('transform', 'scale(1)');
     restartBtn.style('box-shadow', 'none');
   });
-
   restartBtn.mousePressed(() => {
-    isGameOver  = false;
-    isGameEnded = false;
-    startEnsembleGame();
+    isGameOver = false; isGameEnded = false;
+    screenState = 'select';
+    restartBtn.hide();
   });
-
-  restartBtn.hide(); // 게임 중에는 숨김
+  restartBtn.hide();
 }
 
 function updateButtonPosition() {
-  let btnWidth = max(220, width * 0.16);
-  let btnHeight = 55;
-  restartBtn.size(btnWidth, btnHeight);
-  restartBtn.position(width / 2 - btnWidth / 2, height * 0.62);
+  let bw = max(220, width * 0.16), bh = 55;
+  restartBtn.size(bw, bh);
+  restartBtn.position(width / 2 - bw / 2, height * 0.62);
 }
 
 // ============================================
-// 🖼️ 메인 드로우 루프
+// ⏸️ 일시정지
+// ============================================
+function togglePause() {
+  if (screenState !== 'game' || isGameEnded || isGameOver) return;
+  isPaused = !isPaused;
+  if (isPaused) {
+    if (masterBgm && masterBgm.isPlaying()) { pausedTime = masterBgm.currentTime(); masterBgm.pause(); }
+  } else {
+    if (masterBgm) { masterBgm.play(); masterBgm.jump(pausedTime); }
+  }
+}
+
+// ============================================
+// 🖼️ 메인 드로우
 // ============================================
 function draw() {
-  // 배경 그리드 및 어두운 톤 적용
-  background(15, 23, 42); 
+  background(15, 23, 42);
   drawBackgroundGrid();
 
-  if (!isSongPlaying && !isGameEnded && !isGameOver) {
+  if (screenState === 'start') {
     restartBtn.hide();
     drawStartScreen();
+  } else if (screenState === 'select') {
+    restartBtn.hide();
+    drawSelectScreen();
   } else if (isGameOver) {
     drawGameOverScreen();
   } else if (isGameEnded) {
     drawEndScreen();
   } else if (isPaused) {
-    // 🆕 일시정지 화면
     drawPausedScreen();
   } else {
     restartBtn.hide();
-    // 🕹️ 게임 진행 중 로직
-    if (masterBgm && masterBgm.isPlaying()) {
-      globalSongTime = masterBgm.currentTime() * 1000;
-    }
+    if (masterBgm && masterBgm.isPlaying()) globalSongTime = masterBgm.currentTime() * 1000;
 
     if (globalSongTime >= SESSION_TIMELINE.DRUM4.end) {
-      isSongPlaying = false;
-      isGameEnded = true;
+      isSongPlaying = false; isGameEnded = true;
       if (masterBgm) masterBgm.stop();
       return;
     }
 
-    let currentSessionIdx = -1;
+    let idx = -1;
     for (let i = 0; i < SESSION_ORDER.length; i++) {
-      let sessionData = SESSION_TIMELINE[SESSION_ORDER[i].key];
-      if (globalSongTime >= sessionData.start && globalSongTime < sessionData.end) {
-        currentSessionIdx = i;
-        break;
-      }
+      let sd = SESSION_TIMELINE[SESSION_ORDER[i].key];
+      if (globalSongTime >= sd.start && globalSongTime < sd.end) { idx = i; break; }
     }
-
-    if (currentSessionIdx !== -1) {
-      let currentSession = SESSION_ORDER[currentSessionIdx];
-      let currentSessionData = SESSION_TIMELINE[currentSession.key];
-
-      if (currentSessionIdx > 0) {
-        let gracePeriodEnd = currentSessionData.start + FOUR_BEATS_MS;
-        if (globalSongTime >= gracePeriodEnd && !motionSuccessList[currentSession.key]) {
-          triggerGameOver();
-          return;
-        }
+    if (idx !== -1) {
+      let cs = SESSION_ORDER[idx], csd = SESSION_TIMELINE[cs.key];
+      if (idx > 0) {
+        let gpe = csd.start + FOUR_BEATS_MS;
+        if (globalSongTime >= gpe && !motionSuccessList[cs.key]) { triggerGameOver(); return; }
       }
-
-      if (currentSession.type === "KEYBOARD" && typeof keyboardDraw === 'function') keyboardDraw();
-      else if (currentSession.type === "BASS" && typeof bassDraw === 'function') bassDraw();
-      else if (currentSession.type === "DRUM" && typeof drumDraw === 'function') drumDraw();
-
-      drawSessionIndicator(currentSession.name);
-
-      if (currentSessionIdx > 0) {
-        let gracePeriodEnd = currentSessionData.start + FOUR_BEATS_MS;
-        if (globalSongTime >= currentSessionData.start && globalSongTime < gracePeriodEnd) {
-          drawPageTurnOverlay(gracePeriodEnd, currentSession.key);
-        }
+      if      (cs.type === "KEYBOARD" && typeof keyboardDraw === 'function') keyboardDraw();
+      else if (cs.type === "BASS"     && typeof bassDraw     === 'function') bassDraw();
+      else if (cs.type === "DRUM"     && typeof drumDraw     === 'function') drumDraw();
+      drawSessionIndicator(cs.name);
+      if (idx > 0) {
+        let gpe = csd.start + FOUR_BEATS_MS;
+        if (globalSongTime >= csd.start && globalSongTime < gpe) drawPageTurnOverlay(gpe, cs.key);
       }
     }
     drawMasterOverlay();
-    drawPauseHint(); // 🆕 우측 상단에 ESC 안내
+    drawPauseHint();
   }
 }
 
 // ============================================
-// 🆕 일시정지 관련 함수
+// 🎵 곡 선택 화면
 // ============================================
-function togglePause() {
-  if (!isSongPlaying || isGameEnded || isGameOver) return;
-
-  isPaused = !isPaused;
-
-  if (isPaused) {
-    // 일시정지 진입
-    if (masterBgm && masterBgm.isPlaying()) {
-      pausedTime = masterBgm.currentTime();
-      masterBgm.pause();
-    }
-  } else {
-    // 재개
-    if (masterBgm) {
-      masterBgm.play();
-      masterBgm.jump(pausedTime);
-    }
-  }
-}
-
-function drawPausedScreen() {
-  // 게임 화면을 반투명 오버레이로 덮음
+function drawSelectScreen() {
+  // 제목
   push();
-  fill(0, 0, 0, 180);
-  rect(0, 0, width, height);
-  pop();
-
-  // 일시정지 제목
-  push();
-  textAlign(CENTER, CENTER);
-  textFont('Helvetica');
-  textStyle(BOLD);
-  textSize(width * 0.06);
-  fill('#FFD700'); 
-  drawingContext.shadowBlur = 20;
-  drawingContext.shadowColor = 'rgba(255, 215, 0, 0.6)';
-  text("⏸ PAUSED", width / 2, height * 0.35);
-  pop();
-
-  // 안내 메시지
-  push();
-  textAlign(CENTER, CENTER);
-  textSize(width * 0.022);
-  textStyle(NORMAL);
-  fill(200, 210, 230);
-  text("게임이 일시정지되었습니다", width / 2, height * 0.48);
-
-  textSize(width * 0.018);
-  fill(160, 170, 190);
-  text("ESC 키를 다시 눌러 재개하세요", width / 2, height * 0.54);
-  pop();
-
-  // 현재 진행도 표시
-  push();
-  textAlign(CENTER, CENTER);
-  textSize(width * 0.016);
-  fill(120, 130, 150);
-  let currentTimeStr = (globalSongTime / 1000).toFixed(1);
-  let totalTimeStr = (SESSION_TIMELINE.DRUM4.end / 1000).toFixed(0);
-  text(`TIME: ${currentTimeStr} / ${totalTimeStr}s`, width / 2, height * 0.64);
-  pop();
-}
-
-function drawPauseHint() {
-  // 우측 상단에 작게 ESC 안내 표시
-  push();
-  textAlign(RIGHT, TOP);
-  textSize(11);
-  textStyle(NORMAL);
-  fill(120, 130, 150);
-  text("ESC: 일시정지", width - 30, 100);
-  pop();
-}
-
-// ============================================
-// 🎨 UI 리팩토링 구역 (게임오버 / 클리어 분리)
-// ============================================
-
-function drawGameOverScreen() {
-  restartBtn.show();
-  updateButtonPosition();
-
-  // 총점 계산
-  let totalScore = (typeof keyboardScore !== 'undefined' ? keyboardScore : 0) +
-                   (typeof bassScore     !== 'undefined' ? bassScore     : 0) +
-                   (typeof drumScore     !== 'undefined' ? drumScore     : 0);
-
-  // 1. 상단 타이틀 (강렬한 레드 네온)
-  push();
-  textAlign(CENTER, CENTER);
-  textFont('Helvetica');
-  textStyle(BOLD);
-  textSize(width * 0.05);
-  fill('#FF4655'); 
-  drawingContext.shadowBlur = 20;
-  drawingContext.shadowColor = 'rgba(255, 70, 85, 0.6)';
-  text("GAME OVER", width / 2, height * 0.2);
-  pop();
-
-  // 2. 안내 및 점수 표시
-  push();
-  textAlign(CENTER, CENTER);
-  textSize(width * 0.016);
-  fill(160, 170, 190);
-  text("제때 악보를 넘기지 못해 연주가 중단되었습니다!", width / 2, height * 0.32);
-
-  textSize(width * 0.025);
-  fill(241, 245, 249);
-  text("SCORE : " + totalScore.toLocaleString(), width / 2, height * 0.42);
-
-  textSize(width * 0.04);
-  textStyle(BOLD);
-  fill('#FF4655');
-  text("FAILED", width / 2, height * 0.52);
-  pop();
-
-  drawCredits();
-}
-
-function drawEndScreen() {
-  restartBtn.show();
-  updateButtonPosition();
-
-  // 총점 및 등급 계산
-  let totalScore = (typeof keyboardScore !== 'undefined' ? keyboardScore : 0) +
-                   (typeof bassScore     !== 'undefined' ? bassScore     : 0) +
-                   (typeof drumScore     !== 'undefined' ? drumScore     : 0);
-  let gameGrade = calculateGrade(totalScore);
-
-  // 1. 상단 타이틀 (승리의 그린/블루 네온)
-  push();
-  textAlign(CENTER, CENTER);
-  textFont('Helvetica');
-  textStyle(BOLD);
-  textSize(width * 0.05);
-  fill('#00E5FF'); 
-  drawingContext.shadowBlur = 20;
-  drawingContext.shadowColor = 'rgba(0, 229, 255, 0.6)';
-  text("STAGE CLEAR", width / 2, height * 0.2);
-  pop();
-
-  // 2. 최종 점수 및 등급 구역
-  push();
-  textAlign(CENTER, CENTER);
-  textSize(width * 0.025);
-  fill(241, 245, 249);
-  text("FINAL SCORE : " + totalScore.toLocaleString(), width / 2, height * 0.35);
-
-  textSize(width * 0.07);
-  textStyle(BOLD);
-  fill('#00E5FF'); 
-  drawingContext.shadowBlur = 25;
-  drawingContext.shadowColor = 'rgba(0, 229, 255, 0.7)';
-  text(gameGrade, width / 2, height * 0.48); 
-  pop();
-
-  drawCredits();
-}
-
-// 📊 상단의 컷라인 상수를 참조하여 등급을 계산하는 함수
-function calculateGrade(score) {
-  if      (score >= GRADE_CUTLINE.S) return "👑 S";
-  else if (score >= GRADE_CUTLINE.A) return "A";
-  else if (score >= GRADE_CUTLINE.B) return "B";
-  else                               return "C";
-}
-
-// 👥 제작 크레딧 렌더링
-function drawCredits() {
-  let creditY = height * 0.78;
-  let boxW = min(500, width * 0.8);
-
-  push();
-  rectMode(CENTER);
-  noFill();
-  stroke(30, 41, 59);
-  strokeWeight(1.5);
-  rect(width / 2, creditY + 30, boxW, 100, 10);
-  pop();
-
-  push();
-  textAlign(CENTER, TOP);
-  textSize(13);
-  textStyle(BOLD);
-  fill(148, 163, 184); 
-  text("— PRODUCTION CREDITS —", width / 2, creditY);
-  pop();
-
-  push();
-  textAlign(CENTER, TOP);
-  textSize(14);
-  fill(218, 223, 230);
-
-  let spacing = boxW / 4; 
-  let startX = width / 2;
-
-  text("🥁 드럼\n김도경", startX - spacing, creditY + 25);
-  text("🎸 베이스\n김도현", startX, creditY + 25);
-  text("🎹 건반\n방준혁", startX + spacing, creditY + 25);
-  pop();
-}
-
-// 🌐 배경 그리드선
-function drawBackgroundGrid() {
-  stroke(30, 41, 59, 100);
-  strokeWeight(1);
-  for (let i = 0; i < width; i += 60) { line(i, 0, i, height); }
-  for (let j = 0; j < height; j += 60) { line(0, j, width, j); }
-}
-
-// ============================================
-// 📸 기존 기능 유지 (스타트 스크린 및 모션 인식)
-// ============================================
-function drawStartScreen() {
-  push();
-  textAlign(CENTER, CENTER);
-  textStyle(BOLD);
-  textSize(84);
-  fill(0, 230, 255, 30);
-  text("SSUMIT", width / 2 + 3, height / 2 - 97);
+  textAlign(CENTER, CENTER); textStyle(BOLD); textSize(width * 0.028);
   fill(0, 230, 255);
-  text("SSUMIT", width / 2, height / 2 - 100);
-
-  textSize(16);
-  textStyle(NORMAL);
-  fill(160, 170, 190);
-  text("합주 일렉트릭 앙상블 리듬 게임", width / 2, height / 2 - 40);
-
-  textSize(13);
-  fill(100, 110, 130);
-  text("개발팀 썸썸써밋 : 김도경, 김도현, 김도현, 방준혁", width / 2, height / 2 - 15);
+  drawingContext.shadowBlur = 12; drawingContext.shadowColor = 'rgba(0,229,255,0.5)';
+  text("SELECT SONG", width / 2, height * 0.1);
   pop();
 
-  drawButton(uiButtons.start);
-  drawButton(uiButtons.help);
-  drawButton(uiButtons.full);
+  // 곡 카드 2개
+  for (let i = 0; i < SONG_LIST.length; i++) {
+    drawSongCard(i);
+  }
 
-  if (isHelpVisible) drawHelpPopup();
+  // 배속 레이블
+  push();
+  textAlign(CENTER, CENTER); textSize(13); textStyle(BOLD); fill(160, 170, 190);
+  text("SPEED", width / 2, speedButtons[0].y - 18);
+  pop();
+
+  // 배속 버튼
+  for (let btn of speedButtons) {
+    let isSel = (btn.speed === selectedSpeed);
+    let isHov = (mouseX > btn.x && mouseX < btn.x + btn.w && mouseY > btn.y && mouseY < btn.y + btn.h);
+    push();
+    rectMode(CORNER);
+    if      (isSel) { fill(0, 200, 255, 220); stroke(0, 230, 255); strokeWeight(2.5); }
+    else if (isHov) { fill(0, 230, 255, 40);  stroke(0, 230, 255, 180); strokeWeight(1.5); }
+    else            { fill(20, 22, 33, 180);  stroke(255, 255, 255, 40); strokeWeight(1); }
+    rect(btn.x, btn.y, btn.w, btn.h, 7);
+    noStroke(); textAlign(CENTER, CENTER); textStyle(BOLD); textSize(13);
+    fill(isSel ? color(0,0,0) : isHov ? color(0,230,255) : color(200,210,220));
+    text(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
+    pop();
+  }
+
+  // PLAY 버튼
+  drawSelectBtn(selectButtons.play, color(0, 200, 255), color(0, 0, 0));
+
+  // BACK 버튼
+  drawSelectBtn(selectButtons.back, color(60, 70, 90), color(200, 210, 220));
 }
 
-function drawButton(btn) {
+function drawSongCard(i) {
+  let song = SONG_LIST[i];
+  let r    = songCardRects[i];
+  let isSel = (i === selectedSongIdx);
+  let isHov = (mouseX > r.x && mouseX < r.x + r.w && mouseY > r.y && mouseY < r.y + r.h);
+
   push();
-  let isHovered = (mouseX > btn.x && mouseX < btn.x + btn.w &&
-                   mouseY > btn.y && mouseY < btn.y + btn.h);
   rectMode(CORNER);
-  if (isHovered) {
-    fill(0, 230, 255, 35); stroke(0, 230, 255); strokeWeight(2);
+  // 선택된 곡은 테두리 강조
+  if (isSel) {
+    fill(22, 40, 70);
+    stroke(0, 200, 255); strokeWeight(2.5);
+    drawingContext.shadowBlur = 18; drawingContext.shadowColor = 'rgba(0,200,255,0.35)';
+  } else if (isHov) {
+    fill(22, 33, 55); stroke(0, 180, 255, 120); strokeWeight(1.5);
   } else {
-    fill(20, 22, 33, 180); stroke(255, 255, 255, 50); strokeWeight(1);
+    fill(18, 26, 44); stroke(50, 70, 100, 120); strokeWeight(1);
   }
-  rect(btn.x, btn.y, btn.w, btn.h, 6);
-  noStroke(); textAlign(CENTER, CENTER); textStyle(BOLD);
-  if (isHovered) { fill(0, 230, 255); textSize(15); } 
-  else { fill(220, 225, 235); textSize(14); }
-  if (btn.label === "FULLSCREEN") textSize(12);
+  rect(r.x, r.y, r.w, r.h, 14);
+
+  // 선택 표시 뱃지
+  if (isSel) {
+    noStroke(); fill(0, 200, 255);
+    rect(r.x, r.y, 60, 24, 14, 0, 0, 0);
+    textAlign(CENTER, CENTER); textSize(11); textStyle(BOLD); fill(0, 0, 0);
+    text("SELECTED", r.x + 30, r.y + 12);
+  }
+
+  // 곡 제목
+  noStroke(); textAlign(LEFT, TOP); textStyle(BOLD);
+  textSize(18); fill(isSel ? color(0, 220, 255) : color(220, 230, 245));
+  text(song.title, r.x + 18, r.y + 34);
+
+  // 아티스트
+  textSize(12); textStyle(NORMAL); fill(isSel ? color(120, 200, 255) : color(140, 155, 180));
+  text(song.subtitle, r.x + 18, r.y + 60);
+
+  // 구분선
+  stroke(40, 60, 90); strokeWeight(1);
+  line(r.x + 18, r.y + 82, r.x + r.w - 18, r.y + 82);
+
+  // BPM 및 세션 뱃지
+  noStroke(); textAlign(LEFT, TOP); textSize(11); textStyle(BOLD);
+  fill(isSel ? color(0, 200, 255) : color(100, 130, 170));
+  text(`♩ ${song.bpm} BPM`, r.x + 18, r.y + 92);
+
+  // 세션 아이콘
+  let bx = r.x + 18;
+  let badgeColors = [color(0,150,220,50), color(220,100,0,50), color(80,200,100,50)];
+  let textColors  = [color(0,200,255), color(255,160,60), color(120,240,140)];
+  for (let j = 0; j < song.sessions.length; j++) {
+    fill(badgeColors[j]); rect(bx, r.y + 118, 80, 22, 5);
+    fill(textColors[j]); textAlign(CENTER, CENTER); textSize(10);
+    text(song.sessions[j], bx + 40, r.y + 129);
+    bx += 88;
+  }
+
+  // 미정 워터마크 (song2 타임라인 미확정)
+  if (song.id === 'song2') {
+    textAlign(RIGHT, BOTTOM); textSize(10); textStyle(NORMAL);
+    fill(180, 100, 60, 180);
+    text("⚠ 타임라인 미정", r.x + r.w - 12, r.y + r.h - 8);
+  }
+  pop();
+}
+
+function drawSelectBtn(btn, bgCol, txtCol) {
+  let isHov = (mouseX > btn.x && mouseX < btn.x + btn.w && mouseY > btn.y && mouseY < btn.y + btn.h);
+  push();
+  rectMode(CORNER);
+  if (isHov) {
+    fill(red(bgCol), green(bgCol), blue(bgCol), 230);
+    stroke(255,255,255,80); strokeWeight(1.5);
+    drawingContext.shadowBlur = 14; drawingContext.shadowColor = 'rgba(0,229,255,0.4)';
+  } else {
+    fill(red(bgCol), green(bgCol), blue(bgCol), 180);
+    stroke(255,255,255,30); strokeWeight(1);
+  }
+  rect(btn.x, btn.y, btn.w, btn.h, 8);
+  noStroke(); textAlign(CENTER, CENTER); textStyle(BOLD); textSize(15); fill(txtCol);
   text(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
   pop();
 }
 
-function drawPageTurnOverlay(targetTime, currentSessionKey) {
-  if (motionSuccessList[currentSessionKey]) return;
-
-  push();
-  translate(width / 2, height / 2);
-  rectMode(CENTER);
-  fill(0, 0, 0, 140); stroke(255, 50, 50); strokeWeight(3);
-  rect(0, 0, 500, 320, 15);
-
-  noStroke(); fill(255, 200, 0); textAlign(CENTER, CENTER); textSize(22); textStyle(BOLD);
-  text("⚠️ SWIPE HAND TO TURN PAGE! ⚠️", 0, -130);
-
-  let timeLeft = targetTime - globalSongTime;
-  let currentBeatCount = Math.ceil(timeLeft / ONE_BEAT_MS);
-  if (currentBeatCount > 0 && currentBeatCount <= 4) {
-    textSize(55); fill(255, 50, 50); text(currentBeatCount, 0, -80);
-  }
-
-  push(); scale(-1, 1); imageMode(CENTER); image(mainCapture, 0, 40, 360, 135); pop();
-
-  let leftCircleX = -130, rightCircleX = 130, circlesY = 40;
-  let rightHit = checkMainMotion(80,  95, 25);
-  let leftHit  = checkMainMotion(320, 95, 25);
-  let currentTime = millis();
-
-  if (rightHit && !rightCircleTriggered && (currentTime - rightTriggerTime > 300)) {
-    rightCircleTriggered = true; rightTriggerTime = currentTime;
-  }
-  if (rightCircleTriggered && currentTime - rightTriggerTime > 1000) {
-    rightCircleTriggered = false;
-  }
-  let timeGap = currentTime - rightTriggerTime;
-  if (rightCircleTriggered && leftHit && (timeGap >= 150) && (timeGap <= 1000)) {
-    motionSuccessList[currentSessionKey] = true; rightCircleTriggered = false;
-  }
-
-  strokeWeight(4); noFill();
-  if (rightCircleTriggered) stroke(0, 255, 100);
-  else stroke(rightHit ? color(0, 255, 100) : color(255, 50, 50));
-  circle(rightCircleX, circlesY, 50);
-
-  if (motionSuccessList[currentSessionKey]) stroke(0, 255, 100);
-  else if (rightCircleTriggered) stroke(0, 200, 255);
-  else stroke(150);
-  circle(leftCircleX, circlesY, 50);
-
-  noStroke(); fill(255); textSize(13);
-  text("1. RIGHT START", rightCircleX, circlesY + 45);
-  text("2. LEFT END (IN 1s)", leftCircleX, circlesY + 45);
-  mainPrevFrame.copy(mainCapture, 0, 0, 400, 150, 0, 0, 400, 150);
-  pop();
-}
-
-function checkMainMotion(cx, cy, r) {
-  mainCapture.loadPixels(); mainPrevFrame.loadPixels();
-  if (!mainCapture.pixels || mainCapture.pixels.length === 0 || !mainPrevFrame.pixels || mainPrevFrame.pixels.length === 0) return false;
-  let motionCount = 0, totalPixelsChecked = 0;
-  for (let y = 0; y < mainCapture.height; y += 2) {
-    for (let x = 0; x < mainCapture.width; x += 2) {
-      if (dist(x, y, cx, cy) < r) {
-        totalPixelsChecked++;
-        let index = (x + y * mainCapture.width) * 4;
-        let diff = dist(mainCapture.pixels[index], mainCapture.pixels[index+1], mainCapture.pixels[index+2], mainPrevFrame.pixels[index], mainPrevFrame.pixels[index+1], mainPrevFrame.pixels[index+2]);
-        if (diff > 65) motionCount++;
-      }
-    }
-  }
-  if (totalPixelsChecked === 0) return false;
-  return (motionCount / totalPixelsChecked) > 0.22;
-}
-
-function triggerGameOver() {
-  isSongPlaying = false;
-  isGameOver = true;
-  if (masterBgm) masterBgm.stop();
-}
-
-function drawHelpPopup() {
-  fill(0, 0, 0, 230); rect(0, 0, width, height);
-  fill(20, 20, 30); stroke(0, 230, 255); rect(width/2 - 300, height/2 - 200, 600, 400, 20);
-  fill(255); noStroke(); textAlign(LEFT, TOP); textSize(15);
-  let desc = "이 게임은 한 곡 안에서 밴드의 세가지 세션(베이스, 건반, 드럼)을 모두 플레이 할 수 있는 리듬게임입니다.\n\n베이스: 마우스를 위 아래로 움직여 조준점을 줄 위에 위치시키고 타이밍을 맞춰 스페이스바/클릭 합니다.\n\n건반: 블럭이 떨어지는 타이밍에 맞추어 지정된 키보드를 누릅니다.\n\n드럼: 드럼 악보 위 지정된 키를 타이밍에 맞추어 누릅니다.\n\n🔥 중요 🔥: 새로운 악기 파트가 시작되면 첫 4박자 동안 화면에 '악보 넘기기 창'이 뜹니다. 연주를 진행하면서 동시에 카운트가 끝나기 전에 카메라의 오른쪽 원을 터치한 뒤 1초 내에 왼쪽 원을 터치하여 악보를 넘겨야 합니다. 실패 시 즉시 게임 오버됩니다!\n\n⏸ 일시정지: 게임 중 ESC 키를 눌러 일시정지 및 재개가 가능합니다.";
-  text(desc, width/2 - 270, height/2 - 170, 540, 350);
-  textAlign(CENTER, CENTER); text("[클릭하여 닫기]", width/2, height/2 + 170);
-}
-
-function drawSessionIndicator(sessionName) {
-  push(); rectMode(CENTER); fill(0, 0, 0, 150); stroke(0, 230, 255, 100); strokeWeight(1);
-  rect(width / 2, 50, 280, 35, 8); noStroke(); fill(0, 230, 255); textAlign(CENTER, CENTER); textSize(16); textStyle(BOLD);
-  text(sessionName, width / 2, 50); pop();
-}
-
-function drawMasterOverlay() {
-  let liveTotalScore = (typeof keyboardScore !== 'undefined' ? keyboardScore : 0) + (typeof bassScore !== 'undefined' ? bassScore : 0) + (typeof drumScore !== 'undefined' ? drumScore : 0);
-  let liveCombo = 0, currentType = null;
-  for (let i = 0; i < SESSION_ORDER.length; i++) {
-    let session = SESSION_TIMELINE[SESSION_ORDER[i].key];
-    if (globalSongTime >= session.start && globalSongTime < session.end) { currentType = SESSION_ORDER[i].type; break; }
-  }
-  if (currentType === "KEYBOARD") liveCombo = typeof keyboardCombo !== 'undefined' ? keyboardCombo : 0;
-  else if (currentType === "BASS") liveCombo = typeof bassCombo !== 'undefined' ? bassCombo : 0;
-  else if (currentType === "DRUM") liveCombo = typeof drumCombo !== 'undefined' ? drumCombo : 0;
-
-  push(); textAlign(RIGHT, TOP); textSize(18); textStyle(BOLD); fill(255, 255, 255, 160);
-  text(`SCORE: ${liveTotalScore.toLocaleString()}`, width - 30, 20);
-  textSize(15); fill(0, 230, 255); text(`COMBO: ${liveCombo}`, width - 30, 48);
-  textSize(12); textStyle(NORMAL); fill(150); text(`TIME: ${(globalSongTime / 1000).toFixed(1)} / ${(SESSION_TIMELINE.DRUM4.end / 1000).toFixed(0)}s`, width - 30, 75);
-  pop();
-}
-
 // ============================================
-// 🖱️ 입력 및 조작
+// 🎮 게임 시작
 // ============================================
-function mousePressed() {
-  if (isHelpVisible) { isHelpVisible = false; return; }
-
-  if (mouseX > uiButtons.full.x && mouseX < uiButtons.full.x + uiButtons.full.w &&
-      mouseY > uiButtons.full.y && mouseY < uiButtons.full.y + uiButtons.full.h) {
-    fullscreen(!fullscreen()); 
-    return;
-  }
-
-  if (!isSongPlaying && !isGameEnded && !isGameOver &&
-      mouseX > uiButtons.start.x && mouseX < uiButtons.start.x + uiButtons.start.w &&
-      mouseY > uiButtons.start.y && mouseY < uiButtons.start.y + uiButtons.start.h) {
-    startEnsembleGame();
-  }
-
-  if (!isSongPlaying && !isGameEnded && !isGameOver &&
-      mouseX > uiButtons.help.x && mouseX < uiButtons.help.x + uiButtons.help.w &&
-      mouseY > uiButtons.help.y && mouseY < uiButtons.help.y + uiButtons.help.h) {
-    isHelpVisible = true;
-  }
-}
-
 function startEnsembleGame() {
-  if (masterBgm) { masterBgm.stop(); masterBgm.play(); }
-  isSongPlaying = true;
-  isPaused = false; // 🆕 재시작 시 일시정지 해제
-  globalSongTime = 0;
+  applySpeed(selectedSpeed);
+  let song = SONG_LIST[selectedSongIdx];
+
+  if (masterBgm) masterBgm.stop();
+  masterBgm = loadSound(song.file, () => {
+    masterBgm.rate(selectedSpeed);
+    masterBgm.play();
+  });
+
+  isSongPlaying = true; isPaused = false;
+  screenState   = 'game'; globalSongTime = 0;
   motionSuccessList = {};
-  for (let i = 1; i < SESSION_ORDER.length; i++) { motionSuccessList[SESSION_ORDER[i].key] = false; }
+  for (let i = 1; i < SESSION_ORDER.length; i++) motionSuccessList[SESSION_ORDER[i].key] = false;
   rightCircleTriggered = false;
 
   if (typeof keyboardScore !== 'undefined') { keyboardScore = 0; keyboardCombo = 0; keyboardMaxCombo = 0; }
@@ -635,44 +477,264 @@ function startEnsembleGame() {
   if (typeof drumCreateChart     === 'function') drumCreateChart();
 }
 
+// ============================================
+// 🎨 결과 / 게임오버 / 공통 UI
+// ============================================
+function drawGameOverScreen() {
+  restartBtn.show(); updateButtonPosition();
+  let total = calcTotalScore();
+  push(); textAlign(CENTER,CENTER); textFont('Helvetica'); textStyle(BOLD);
+  textSize(width*0.05); fill('#FF4655');
+  drawingContext.shadowBlur=20; drawingContext.shadowColor='rgba(255,70,85,0.6)';
+  text("GAME OVER", width/2, height*0.2); pop();
+  push(); textAlign(CENTER,CENTER);
+  textSize(width*0.016); fill(160,170,190);
+  text("제때 악보를 넘기지 못해 연주가 중단되었습니다!", width/2, height*0.32);
+  textSize(width*0.025); fill(241,245,249);
+  text("SCORE : "+total.toLocaleString(), width/2, height*0.42);
+  textSize(width*0.04); textStyle(BOLD); fill('#FF4655');
+  text("FAILED", width/2, height*0.52); pop();
+  drawCredits();
+}
+
+function drawEndScreen() {
+  restartBtn.show(); updateButtonPosition();
+  let total = calcTotalScore(), grade = calculateGrade(total);
+  push(); textAlign(CENTER,CENTER); textFont('Helvetica'); textStyle(BOLD);
+  textSize(width*0.05); fill('#00E5FF');
+  drawingContext.shadowBlur=20; drawingContext.shadowColor='rgba(0,229,255,0.6)';
+  text("STAGE CLEAR", width/2, height*0.2); pop();
+  push(); textAlign(CENTER,CENTER);
+  textSize(width*0.025); fill(241,245,249);
+  text("FINAL SCORE : "+total.toLocaleString(), width/2, height*0.35);
+  textSize(width*0.07); textStyle(BOLD); fill('#00E5FF');
+  drawingContext.shadowBlur=25; drawingContext.shadowColor='rgba(0,229,255,0.7)';
+  text(grade, width/2, height*0.48); pop();
+  drawCredits();
+}
+
+function calcTotalScore() {
+  return (typeof keyboardScore!=='undefined'?keyboardScore:0)+
+         (typeof bassScore    !=='undefined'?bassScore    :0)+
+         (typeof drumScore    !=='undefined'?drumScore    :0);
+}
+function calculateGrade(s) {
+  return s>=GRADE_CUTLINE.S?"👑 S":s>=GRADE_CUTLINE.A?"A":s>=GRADE_CUTLINE.B?"B":"C";
+}
+
+function drawCredits() {
+  let cy=height*0.78, bw=min(500,width*0.8);
+  push(); rectMode(CENTER); noFill(); stroke(30,41,59); strokeWeight(1.5);
+  rect(width/2,cy+30,bw,100,10); pop();
+  push(); textAlign(CENTER,TOP); textSize(13); textStyle(BOLD); fill(148,163,184);
+  text("— PRODUCTION CREDITS —",width/2,cy); pop();
+  push(); textAlign(CENTER,TOP); textSize(14); fill(218,223,230);
+  let sp=bw/4, sx=width/2;
+  text("🥁 드럼\n김도경",  sx-sp,cy+25);
+  text("🎸 베이스\n김도현",sx,   cy+25);
+  text("🎹 건반\n방준혁",  sx+sp,cy+25); pop();
+}
+
+function drawBackgroundGrid() {
+  stroke(30,41,59,100); strokeWeight(1);
+  for(let i=0;i<width; i+=60) line(i,0,i,height);
+  for(let j=0;j<height;j+=60) line(0,j,width,j);
+}
+
+function drawStartScreen() {
+  push(); textAlign(CENTER,CENTER); textStyle(BOLD);
+  textSize(84); fill(0,230,255,30); text("SSUMIT",width/2+3,height/2-97);
+  fill(0,230,255); text("SSUMIT",width/2,height/2-100);
+  textSize(16); textStyle(NORMAL); fill(160,170,190);
+  text("합주 일렉트릭 앙상블 리듬 게임",width/2,height/2-40);
+  textSize(13); fill(100,110,130);
+  text("개발팀 썸썸써밋 : 김도경, 김도현, 김도현, 방준혁",width/2,height/2-15); pop();
+  drawButton(uiButtons.start); drawButton(uiButtons.help); drawButton(uiButtons.full);
+  if(isHelpVisible) drawHelpPopup();
+}
+
+function drawPausedScreen() {
+  push(); fill(0,0,0,180); rect(0,0,width,height); pop();
+  push(); textAlign(CENTER,CENTER); textFont('Helvetica'); textStyle(BOLD);
+  textSize(width*0.06); fill('#FFD700');
+  drawingContext.shadowBlur=20; drawingContext.shadowColor='rgba(255,215,0,0.6)';
+  text("⏸ PAUSED",width/2,height*0.35); pop();
+  push(); textAlign(CENTER,CENTER); textSize(width*0.022); textStyle(NORMAL); fill(200,210,230);
+  text("게임이 일시정지되었습니다",width/2,height*0.48);
+  textSize(width*0.018); fill(160,170,190);
+  text("ESC 키를 다시 눌러 재개하세요",width/2,height*0.54);
+  textSize(width*0.015); fill(100,200,255);
+  text(`현재 배속: ${selectedSpeed}x`,width/2,height*0.62); pop();
+}
+
+function drawButton(btn) {
+  push();
+  let h=(mouseX>btn.x&&mouseX<btn.x+btn.w&&mouseY>btn.y&&mouseY<btn.y+btn.h);
+  rectMode(CORNER);
+  if(h){fill(0,230,255,35);stroke(0,230,255);strokeWeight(2);}
+  else {fill(20,22,33,180);stroke(255,255,255,50);strokeWeight(1);}
+  rect(btn.x,btn.y,btn.w,btn.h,6);
+  noStroke();textAlign(CENTER,CENTER);textStyle(BOLD);
+  if(h){fill(0,230,255);textSize(15);}else{fill(220,225,235);textSize(14);}
+  if(btn.label==="FULLSCREEN")textSize(12);
+  text(btn.label,btn.x+btn.w/2,btn.y+btn.h/2); pop();
+}
+
+function drawSessionIndicator(name) {
+  push(); rectMode(CENTER); fill(0,0,0,150); stroke(0,230,255,100); strokeWeight(1);
+  rect(width/2,50,340,35,8); noStroke(); fill(0,230,255);
+  textAlign(CENTER,CENTER); textSize(16); textStyle(BOLD);
+  text(`${name}  [${selectedSpeed}x]`,width/2,50); pop();
+}
+
+function drawMasterOverlay() {
+  let total=calcTotalScore(), combo=0, type=null;
+  for(let i=0;i<SESSION_ORDER.length;i++){
+    let s=SESSION_TIMELINE[SESSION_ORDER[i].key];
+    if(globalSongTime>=s.start&&globalSongTime<s.end){type=SESSION_ORDER[i].type;break;}
+  }
+  if(type==="KEYBOARD") combo=typeof keyboardCombo!=='undefined'?keyboardCombo:0;
+  else if(type==="BASS") combo=typeof bassCombo!=='undefined'?bassCombo:0;
+  else if(type==="DRUM") combo=typeof drumCombo!=='undefined'?drumCombo:0;
+  push(); textAlign(RIGHT,TOP); textSize(18); textStyle(BOLD); fill(255,255,255,160);
+  text(`SCORE: ${total.toLocaleString()}`,width-30,20);
+  textSize(15); fill(0,230,255); text(`COMBO: ${combo}`,width-30,48);
+  textSize(12); textStyle(NORMAL); fill(150);
+  text(`TIME: ${(globalSongTime/1000).toFixed(1)} / ${(SESSION_TIMELINE.DRUM4.end/1000).toFixed(0)}s`,width-30,75); pop();
+}
+
+function drawPauseHint() {
+  push(); textAlign(RIGHT,TOP); textSize(11); fill(120,130,150);
+  text("ESC: 일시정지",width-30,100); pop();
+}
+
+function drawHelpPopup() {
+  fill(0,0,0,230); rect(0,0,width,height);
+  fill(20,20,30); stroke(0,230,255); rect(width/2-300,height/2-210,600,430,20);
+  fill(255); noStroke(); textAlign(LEFT,TOP); textSize(15);
+  let desc="이 게임은 한 곡 안에서 밴드의 세가지 세션(베이스, 건반, 드럼)을 모두 플레이 할 수 있는 리듬게임입니다.\n\n베이스: 마우스를 위 아래로 움직여 조준점을 줄 위에 위치시키고 타이밍을 맞춰 스페이스바/클릭 합니다.\n\n건반: 블럭이 떨어지는 타이밍에 맞추어 지정된 키보드를 누릅니다.\n\n드럼: 드럼 악보 위 지정된 키를 타이밍에 맞추어 누릅니다.\n\n🔥 중요 🔥: 새로운 악기 파트가 시작되면 첫 4박자 동안 화면에 '악보 넘기기 창'이 뜹니다. 실패 시 즉시 게임 오버됩니다!\n\n⏸ 일시정지: ESC 키\n🎚️ 배속: 곡 선택 화면에서 변경 가능";
+  text(desc,width/2-270,height/2-185,540,380);
+  textAlign(CENTER,CENTER); text("[클릭하여 닫기]",width/2,height/2+195);
+}
+
+function drawPageTurnOverlay(targetTime, currentSessionKey) {
+  if(motionSuccessList[currentSessionKey]) return;
+  push();
+  translate(width/2,height/2); rectMode(CENTER);
+  fill(0,0,0,140); stroke(255,50,50); strokeWeight(3); rect(0,0,500,320,15);
+  noStroke(); fill(255,200,0); textAlign(CENTER,CENTER); textSize(22); textStyle(BOLD);
+  text("⚠️ SWIPE HAND TO TURN PAGE! ⚠️",0,-130);
+  let tl=targetTime-globalSongTime, bc=Math.ceil(tl/ONE_BEAT_MS);
+  if(bc>0&&bc<=4){textSize(55);fill(255,50,50);text(bc,0,-80);}
+  push(); scale(-1,1); imageMode(CENTER); image(mainCapture,0,40,360,135); pop();
+  let lx=-130,rx=130,cy=40;
+  let rH=checkMainMotion(80,95,25),lH=checkMainMotion(320,95,25),now=millis();
+  if(rH&&!rightCircleTriggered&&now-rightTriggerTime>300){rightCircleTriggered=true;rightTriggerTime=now;}
+  if(rightCircleTriggered&&now-rightTriggerTime>1000) rightCircleTriggered=false;
+  let gap=now-rightTriggerTime;
+  if(rightCircleTriggered&&lH&&gap>=150&&gap<=1000){motionSuccessList[currentSessionKey]=true;rightCircleTriggered=false;}
+  strokeWeight(4); noFill();
+  stroke(rightCircleTriggered?color(0,255,100):rH?color(0,255,100):color(255,50,50)); circle(rx,cy,50);
+  stroke(motionSuccessList[currentSessionKey]?color(0,255,100):rightCircleTriggered?color(0,200,255):color(150)); circle(lx,cy,50);
+  noStroke(); fill(255); textSize(13);
+  text("1. RIGHT START",rx,cy+45); text("2. LEFT END (IN 1s)",lx,cy+45);
+  mainPrevFrame.copy(mainCapture,0,0,400,150,0,0,400,150);
+  pop();
+}
+
+function checkMainMotion(cx,cy,r) {
+  mainCapture.loadPixels(); mainPrevFrame.loadPixels();
+  if(!mainCapture.pixels?.length||!mainPrevFrame.pixels?.length) return false;
+  let mc=0,tc=0;
+  for(let y=0;y<mainCapture.height;y+=2){
+    for(let x=0;x<mainCapture.width;x+=2){
+      if(dist(x,y,cx,cy)<r){tc++;
+        let i=(x+y*mainCapture.width)*4;
+        if(dist(mainCapture.pixels[i],mainCapture.pixels[i+1],mainCapture.pixels[i+2],
+                mainPrevFrame.pixels[i],mainPrevFrame.pixels[i+1],mainPrevFrame.pixels[i+2])>65) mc++;}
+    }
+  }
+  return tc>0&&(mc/tc)>0.22;
+}
+
+function triggerGameOver() {
+  isSongPlaying=false; isGameOver=true; isPaused=false;
+  if(masterBgm) masterBgm.stop();
+}
+
+// ============================================
+// 🖱️ 입력
+// ============================================
+function mousePressed() {
+  if(isHelpVisible){isHelpVisible=false;return;}
+
+  if(mouseX>uiButtons.full.x&&mouseX<uiButtons.full.x+uiButtons.full.w&&
+     mouseY>uiButtons.full.y&&mouseY<uiButtons.full.y+uiButtons.full.h){
+    fullscreen(!fullscreen()); return;
+  }
+
+  if(screenState==='start'){
+    if(mouseX>uiButtons.start.x&&mouseX<uiButtons.start.x+uiButtons.start.w&&
+       mouseY>uiButtons.start.y&&mouseY<uiButtons.start.y+uiButtons.start.h){
+      screenState='select'; return;
+    }
+    if(mouseX>uiButtons.help.x&&mouseX<uiButtons.help.x+uiButtons.help.w&&
+       mouseY>uiButtons.help.y&&mouseY<uiButtons.help.y+uiButtons.help.h){
+      isHelpVisible=true; return;
+    }
+  }
+
+  if(screenState==='select'){
+    // BACK
+    let bk=selectButtons.back;
+    if(mouseX>bk.x&&mouseX<bk.x+bk.w&&mouseY>bk.y&&mouseY<bk.y+bk.h){
+      screenState='start'; return;
+    }
+    // 곡 카드 선택
+    for(let i=0;i<songCardRects.length;i++){
+      let r=songCardRects[i];
+      if(mouseX>r.x&&mouseX<r.x+r.w&&mouseY>r.y&&mouseY<r.y+r.h){
+        selectedSongIdx=i;
+        applySpeed(selectedSpeed); // 곡 바꾸면 타임라인 재계산
+        return;
+      }
+    }
+    // 배속 버튼
+    for(let btn of speedButtons){
+      if(mouseX>btn.x&&mouseX<btn.x+btn.w&&mouseY>btn.y&&mouseY<btn.y+btn.h){
+        applySpeed(btn.speed); return;
+      }
+    }
+    // PLAY
+    let pl=selectButtons.play;
+    if(mouseX>pl.x&&mouseX<pl.x+pl.w&&mouseY>pl.y&&mouseY<pl.y+pl.h){
+      startEnsembleGame(); return;
+    }
+  }
+}
+
 function keyPressed() {
-  // 🆕 ESC 키로 일시정지/재개 토글
-  if (keyCode === ESCAPE) {
-    togglePause();
-    return false; // p5.js 기본 동작 방지
+  if(keyCode===ESCAPE){togglePause();return false;}
+  if(key==='f'||key==='F'){fullscreen(!fullscreen());return;}
+  if(isPaused||screenState!=='game') return;
+  let type=null;
+  for(let i=0;i<SESSION_ORDER.length;i++){
+    let s=SESSION_TIMELINE[SESSION_ORDER[i].key];
+    if(globalSongTime>=s.start&&globalSongTime<s.end){type=SESSION_ORDER[i].type;break;}
   }
-
-  // F키 풀스크린 토글 유지
-  if (key === 'f' || key === 'F') {
-    fullscreen(!fullscreen());
-    return;
-  }
-
-  // 🆕 일시정지 중엔 게임 입력 무시
-  if (isPaused) return;
-
-  if (!isSongPlaying) return;
-  let currentType = null;
-  for (let i = 0; i < SESSION_ORDER.length; i++) {
-    let session = SESSION_TIMELINE[SESSION_ORDER[i].key];
-    if (globalSongTime >= session.start && globalSongTime < session.end) { currentType = SESSION_ORDER[i].type; break; }
-  }
-  if (currentType === "KEYBOARD" && typeof keyboardKeyPressed === 'function') keyboardKeyPressed();
-  else if (currentType === "BASS" && typeof bassKeyPressed === 'function') bassKeyPressed();
-  else if (currentType === "DRUM" && typeof drumKeyPressed === 'function') drumKeyPressed();
+  if(type==="KEYBOARD"&&typeof keyboardKeyPressed==='function') keyboardKeyPressed();
+  else if(type==="BASS"&&typeof bassKeyPressed==='function') bassKeyPressed();
+  else if(type==="DRUM"&&typeof drumKeyPressed==='function') drumKeyPressed();
 }
 
 function keyReleased() {
-  // 🆕 일시정지 중엔 게임 입력 무시
-  if (isPaused) return;
-
-  if (!isSongPlaying) return;
-  let currentType = null;
-  for (let i = 0; i < SESSION_ORDER.length; i++) {
-    let session = SESSION_TIMELINE[SESSION_ORDER[i].key];
-    if (globalSongTime >= session.start && globalSongTime < session.end) { currentType = SESSION_ORDER[i].type; break; }
+  if(isPaused||screenState!=='game') return;
+  let type=null;
+  for(let i=0;i<SESSION_ORDER.length;i++){
+    let s=SESSION_TIMELINE[SESSION_ORDER[i].key];
+    if(globalSongTime>=s.start&&globalSongTime<s.end){type=SESSION_ORDER[i].type;break;}
   }
-  if (currentType === "KEYBOARD" && typeof keyboardKeyReleased === 'function') keyboardKeyReleased();
-  else if (currentType === "BASS" && typeof bassKeyReleased === 'function') bassKeyReleased();
-  else if (currentType === "DRUM" && typeof drumKeyReleased === 'function') drumKeyReleased();
+  if(type==="KEYBOARD"&&typeof keyboardKeyReleased==='function') keyboardKeyReleased();
+  else if(type==="BASS"&&typeof bassKeyReleased==='function') bassKeyReleased();
+  else if(type==="DRUM"&&typeof drumKeyReleased==='function') drumKeyReleased();
 }
