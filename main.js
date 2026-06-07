@@ -9,6 +9,7 @@ let isHelpVisible  = false;
 let isGameEnded    = false;
 let isGameOver     = false;
 let isPaused       = false;
+let volumeSlider;
 
 // 화면 상태: 'start' | 'select' | 'game'
 let screenState = 'start';
@@ -127,25 +128,36 @@ let motionSuccessList    = {};
 // ============================================
 // 🔧 배속 적용
 // ============================================
+// ============================================
+// 🔧 배속 적용 (수정본)
+// ============================================
 function applySpeed(speed) {
   selectedSpeed = speed;
   let base = SONG_LIST[selectedSongIdx].timeline;
 
+  // 1. 타임라인은 원본 곡 기준 시간을 그대로 유지해야 합니다.
+  // masterBgm.currentTime()이 배속에 맞춰 이미 빠르게 흐르기 때문입니다.
   for (let key in base) {
     SESSION_TIMELINE[key] = {
-      start: base[key].start / speed,
-      end:   base[key].end   / speed
+      start: base[key].start,
+      end:   base[key].end
     };
   }
 
-  BPM           = SONG_LIST[selectedSongIdx].bpm * speed;
+  // 2. BPM과 비트당 시간(ms)도 원본 기준을 유지해야
+  // 곡 내부 시간 축으로 흐르는 globalSongTime과 박자가 완벽히 일치합니다.
+  BPM           = SONG_LIST[selectedSongIdx].bpm;
   ONE_BEAT_MS   = (60 / BPM) * 1000;
   FOUR_BEATS_MS = ONE_BEAT_MS * 4;
 
-  if (typeof keyboardSetGameBPM === 'function') keyboardSetGameBPM(BPM);
-  if (typeof bassSetGameBPM     === 'function') bassSetGameBPM(BPM);
-  if (typeof keyboardSCROLL_SPEED !== 'undefined') keyboardSCROLL_SPEED = (windowHeight * 0.6) * speed;
-  if (typeof bassSCROLL_SPEED     !== 'undefined') bassSCROLL_SPEED     = (windowHeight * 0.6) * speed;
+  // 3. 하위 세션(건반, 베이스) 스크립트에서 혹시 '시각적 박자 연출'을 위해 
+  // 실제 프레임 속도가 필요한 경우에만 배속 정보를 따로 넘겨줍니다.
+  if (typeof keyboardSetGameBPM === 'function') keyboardSetGameBPM(BPM * speed);
+  if (typeof bassSetGameBPM     === 'function') bassSetGameBPM(BPM * speed);
+  
+  // 4. 스크롤 속도 조절 (주의점 참고)
+  if (typeof keyboardSCROLL_SPEED !== 'undefined') keyboardSCROLL_SPEED = (windowHeight * 0.6);
+  if (typeof bassSCROLL_SPEED     !== 'undefined') bassSCROLL_SPEED     = (windowHeight * 0.6);
 }
 
 // ============================================
@@ -168,6 +180,10 @@ function setup() {
   if (typeof keyboardSetup === 'function') keyboardSetup();
   if (typeof bassSetup     === 'function') bassSetup();
   if (typeof drumSetup     === 'function') drumSetup();
+
+  // 🔊 볼륨 슬라이더 초기화 (최소 -20, 최대 20, 기본값 0, 간격 1)
+  volumeSlider = createSlider(-20, 20, 0, 1);
+  volumeSlider.style('cursor', 'pointer');
 
   applySpeed(1.0);
   updateUIElements();
@@ -192,6 +208,11 @@ function updateUIElements() {
   selectButtons.play.y = height * 0.85;
   selectButtons.back.x = 40;
   selectButtons.back.y = 30;
+
+  if (volumeSlider) {
+    volumeSlider.position(width - 160, height - 35);
+    volumeSlider.size(130); // 슬라이더 가로 길이
+  }
 
   // 배속 버튼
   speedButtons = [];
@@ -271,6 +292,8 @@ function togglePause() {
 function draw() {
   background(15, 23, 42);
   drawBackgroundGrid();
+
+  handleVolumeSlider();
 
   if (screenState === 'start') {
     restartBtn.hide();
@@ -737,4 +760,45 @@ function keyReleased() {
   if(type==="KEYBOARD"&&typeof keyboardKeyReleased==='function') keyboardKeyReleased();
   else if(type==="BASS"&&typeof bassKeyReleased==='function') bassKeyReleased();
   else if(type==="DRUM"&&typeof drumKeyReleased==='function') drumKeyReleased();
+}
+
+// ============================================
+// 🔊 볼륨 슬라이더 제어 및 데시벨(dB) 연산
+// ============================================
+function handleVolumeSlider() {
+  if (!volumeSlider) return;
+
+  // 순수 실시간 게임 플레이 중인 조건 정의
+  // (게임 화면이면서 일시정지, 게임오버, 게임엔드 상태가 모두 아닐 때)
+  let isPlayingLive = (screenState === 'game' && !isPaused && !isGameOver && !isGameEnded);
+
+  if (isPlayingLive) {
+    // 1. 실제 연주 중에는 슬라이더를 숨깁니다.
+    volumeSlider.hide();
+  } else {
+    // 2. 그 외 모든 대기/정지 화면에서는 슬라이더를 보여줍니다.
+    volumeSlider.show();
+
+    // 3. 데시벨(dB) 값을 p5.sound 진폭(Amplitude)으로 변환
+    // 공식: Amplitude = 10 ^ (dB / 20)
+    // db가 0일 때 1.0(원본), -20일 때 약 0.1(작아짐), +20일 때 10.0(커짐)
+    let dbValue = volumeSlider.value();
+    let amplitude = pow(10, dbValue / 20);
+
+    if (masterBgm) {
+      masterBgm.amp(amplitude);
+    }
+
+    // 4. 슬라이더 바로 위에 현재 설정된 dB 값을 텍스트로 출력
+    push();
+    noStroke();
+    fill(160, 170, 190);
+    textSize(11);
+    textStyle(BOLD);
+    textAlign(RIGHT, BOTTOM);
+    
+    let sign = dbValue > 0 ? "+" : "";
+    text(`VOLUME: ${sign}${dbValue} dB`, width - 30, height - 42);
+    pop();
+  }
 }
