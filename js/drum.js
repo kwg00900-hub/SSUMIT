@@ -72,16 +72,7 @@ const drumCOLOR = {
 
 function drumPreload(){}
 
-let drumAUDIO_OFFSET = -90; // 시스템 입력지연 보정 (베이스와 동일 컨셉)
-
-// 🌟 비대칭 판정 윈도우 (사람은 박자를 미리 예측해서 친다)
-const drumJUDGE_WINDOW = {
-  EARLY_PERFECT: 55,
-  EARLY_GREAT:   200,   // 미리 치는 건 너그럽게
-  LATE_PERFECT:  55,
-  LATE_GREAT:    110    // 늦게 치는 건 빡세게
-};
-
+let drumAUDIO_OFFSET = 0;
 
 function drumBeatToTime(beat) {
   return (beat * 60 / drumSONG_BPM) * 1000;
@@ -184,25 +175,25 @@ function drumCreateChart() {
   drumRest(drumNOTE_1);  drumRest(drumNOTE_1);  drumRest(drumNOTE_1);  drumRest(drumNOTE_1);
   drumRest(drumNOTE_1);  drumRest(drumNOTE_1);  drumRest(drumNOTE_1);  drumRest(drumNOTE_1);
 
-  drumRest(drumNOTE_1);
+  drumRest(drumNOTE_1); // 33마디
 
   drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
-  drumRest(drumNOTE_8);
 
   drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
   drumAddNote('Crash'); drumAddNote('Kick'); drumRest(drumNOTE_8);
-  drumRest(drumNOTE_8);
 
   drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
@@ -322,10 +313,11 @@ function drumCreateChart() {
   drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
+  drumAddNote('Ride');               drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8);
   drumAddNote('Ride'); drumAddNote('Snare');drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
-  drumRest(drumNOTE_8);
+  // drumRest(drumNOTE_8);
 
   drumAddNote('Ride'); drumAddNote('Kick'); drumRest(drumNOTE_8);
   drumAddNote('Ride');               drumRest(drumNOTE_8);
@@ -407,10 +399,10 @@ function drumKeyPressed() {
 
   let pressedType = "";
   if (key === ' ') pressedType = "Kick";
-  else if (key === 'u' || key === 'U') pressedType = "Snare";
-  else if (key === 'i' || key === 'I') pressedType = "Tom1";
-  else if (key === 'f' || key === 'F') { pressedType = "Tom2"; drumConsumedKey = true; }
-  else if (key === 'h' || key === 'H') pressedType = "FloorTom";
+  else if (key === 'y' || key === 'Y') pressedType = "Snare";
+  else if (key === 't' || key === 'T') pressedType = "Tom1";
+  else if (key === 'u' || key === 'U') pressedType = "Tom2";
+  else if (key === 'i' || key === 'I') pressedType = "FloorTom";
   else if (key === 'r' || key === 'R') pressedType = "Hihat";
   else if (key === 'e' || key === 'E') pressedType = "Ride";
 
@@ -418,73 +410,60 @@ function drumKeyPressed() {
 }
 
 // 🌟 히트 판정 + 이펙트 생성 (베이스 스타일 통일)
-// 🌟 베이스 판정 엔진 이식: 최근접 노트 + 비대칭 윈도우 + offset 적용 + 헛침 피드백
-function drumCheckHit(pressedType, allowMiss = true) {
-  let playTime = globalSongTime + drumAUDIO_OFFSET; // 판정도 화면과 동일 보정
+function drumCheckHit(pressedType) {
+  let currentSongTime = globalSongTime;
+  let hitWindowMs = 120;
 
-  let closestNote = null;
-  let closestIndex = -1;
-  let minDiff = Infinity;
-  let isEarly = false;
-
-  // 1) 윈도우 안에서 '가장 가까운' 같은 타입 노트 탐색
   for (let i = 0; i < drumNotes.length; i++) {
     let note = drumNotes[i];
-    if (note.type !== pressedType) continue;
+    if (note.type === pressedType) {
+      let timeDiff = abs(note.time - currentSongTime);
 
-    let timeDiff = note.time - playTime; // +면 아직 안 옴(early), -면 지나감(late)
-    let absDiff = abs(timeDiff);
+      if (timeDiff <= hitWindowMs) {
+        let textResult = "";
+        let colorResult;
 
-    if (timeDiff >= 0 && absDiff <= drumJUDGE_WINDOW.EARLY_GREAT) {
-      if (absDiff < minDiff) { minDiff = absDiff; closestNote = note; closestIndex = i; isEarly = true; }
-    } else if (timeDiff < 0 && absDiff <= drumJUDGE_WINDOW.LATE_GREAT) {
-      if (absDiff < minDiff) { minDiff = absDiff; closestNote = note; closestIndex = i; isEarly = false; }
+        if (timeDiff <= 35) {
+          textResult = "PERFECT";
+          colorResult = drumCOLOR.PERFECT;
+          drumScore += 100;
+          drumCombo += 1;
+        } else {
+          textResult = "GREAT";
+          colorResult = drumCOLOR.GREAT;
+          drumScore += 50;
+          drumCombo += 1;
+        }
+
+        let offset = (pressedType === "Hihat" || pressedType === "Ride" || pressedType === "Crash") ? -25 : 25;
+
+        drumJudgeList.push({
+          text: textResult,
+          color: colorResult,
+          timer: 12,
+          maxTimer: 12,
+          yOffset: offset
+        });
+
+        // 🌟 히트 이펙트 스폰 — 노트 색깔로 파장
+        let noteColor = drumNOTE_COLORS[pressedType] || colorResult;
+        drumHitEffects.push({
+          x: 150, // targetLine X
+          y: note.y,
+          time: millis(),
+          color: noteColor,
+          sizeFactor: textResult === 'PERFECT' ? 1.4 : 1.0
+        });
+
+        // 🌟 드럼킷 플래시 트리거
+        drumKitFlash[pressedType] = millis();
+
+        drumNotes.splice(i, 1);
+        return;
+      }
     }
   }
-
-  // 2) 윈도우 안에 노트 없음 → 헛침 처리 (키 입력일 때만)
-  if (!closestNote) {
-    if (allowMiss) {
-      let offset = (pressedType === "Hihat" || pressedType === "Ride" || pressedType === "Crash") ? -25 : 25;
-      drumJudgeList.push({
-        text: "MISS", color: drumCOLOR.MISS,
-        timer: 12, maxTimer: 12, yOffset: offset
-      });
-      drumKitFlash[pressedType] = millis(); // 헛쳐도 악기는 반응 (죽은 화면 방지)
-      drumCombo = 0;
-    }
-    return;
-  }
-
-  // 3) PERFECT / GREAT 판정
-  let maxPerfect = isEarly ? drumJUDGE_WINDOW.EARLY_PERFECT : drumJUDGE_WINDOW.LATE_PERFECT;
-  let textResult, colorResult;
-
-  if (minDiff <= maxPerfect) {
-    textResult = "PERFECT"; colorResult = drumCOLOR.PERFECT;
-    drumScore += 100; drumCombo += 1;
-  } else {
-    textResult = "GREAT"; colorResult = drumCOLOR.GREAT;
-    drumScore += 50; drumCombo += 1;
-  }
-
-  let offset = (pressedType === "Hihat" || pressedType === "Ride" || pressedType === "Crash") ? -25 : 25;
-  drumJudgeList.push({
-    text: textResult, color: colorResult,
-    timer: 12, maxTimer: 12, yOffset: offset
-  });
-
-  // 히트 이펙트
-  let noteColor = drumNOTE_COLORS[pressedType] || colorResult;
-  drumHitEffects.push({
-    x: 150, y: closestNote.y, time: millis(),
-    color: noteColor, sizeFactor: textResult === 'PERFECT' ? 1.4 : 1.0
-  });
-
-  drumKitFlash[pressedType] = millis();
-  drumNotes.splice(closestIndex, 1);
 }
-
 
 function drumCheckCircleMotion(cx, cy, r) {
   drumCapture.loadPixels();
@@ -534,12 +513,12 @@ function drumDraw() {
 
   let leftCircleHit = drumCheckCircleMotion(320, 95, 55);
   let rightCircleHit = drumCheckCircleMotion(80, 95, 55);
-    if (leftCircleHit || rightCircleHit) {
-    drumCheckHit("Crash", false); // ← false: 카메라는 헛침 MISS 없음
+  if (leftCircleHit || rightCircleHit) {
+    drumCheckHit("Crash");
+    // 카메라 좌우에 따라 다른 심벌 플래시 (rightCircleHit=왼쪽손→오른쪽심벌 CAM, leftCircleHit=오른쪽)
     if (rightCircleHit) drumKitFlash['CrashRight'] = millis();
     if (leftCircleHit)  drumKitFlash['CrashLeft']  = millis();
   }
-
   drumPrevFrame.copy(drumCapture, 0, 0, 400, 150, 0, 0, 400, 150);
 
   // 카메라 프레임 (네온 스타일)
@@ -691,21 +670,21 @@ function drumDrawKit() {
   line(300, drumY + 100, 300, drumY + 160);
   line(400, drumY + 100, 400, drumY + 160);
   arc(350, drumY + 160, 100, 30, 0, PI);
-  fill(255); noStroke(); textSize(24); text("U", 350, drumY + 100);
+  fill(255); noStroke(); textSize(24); text("Y", 350, drumY + 100);
 
   // ── Tom1 (I, 하늘색) ─────────────────────────────────
   let t1C = kitColor('Tom1', 0, 30, 50);
   stroke(80, 80, 120, 100); strokeWeight(2);
   fill(t1C[0], t1C[1], t1C[2]);
   ellipse(450, drumY, 80, 80);
-  fill(0, 200, 255); noStroke(); textSize(24); text("I", 450, drumY);
+  fill(0, 200, 255); noStroke(); textSize(24); text("T", 450, drumY);
 
   // ── Tom2 (F, 노란색) ─────────────────────────────────
   let t2C = kitColor('Tom2', 50, 44, 0);
   stroke(80, 80, 120, 100); strokeWeight(2);
   fill(t2C[0], t2C[1], t2C[2]);
   ellipse(550, drumY, 80, 80);
-  fill(255, 220, 0); noStroke(); textSize(24); text("F", 550, drumY);
+  fill(255, 220, 0); noStroke(); textSize(24); text("U", 550, drumY);
 
   // ── 바스드럼 페달 + Kick ──────────────────────────────
   push();
@@ -733,7 +712,7 @@ function drumDrawKit() {
   line(590, drumY+110, 590, drumY+180);
   line(710, drumY+110, 710, drumY+180);
   arc(650, drumY+180, 120, 40, 0, PI);
-  fill(80, 255, 120); noStroke(); textSize(24); text("H", 650, drumY+110);
+  fill(80, 255, 120); noStroke(); textSize(24); text("I", 650, drumY+110);
 
   // ── 오른쪽 라이드 심벌 (E, 연보라) ──────────────────
   let rdC = kitColor('Ride', 30, 15, 50);
@@ -814,22 +793,22 @@ function drumDrawRideCymbal(x, y) {
 function drumDrawSnare(x, y) {
   fill(255); noStroke(); push(); translate(x, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop();
   stroke(255); strokeWeight(2); line(x + 12, y, x + 12, y - 50);
-  fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(18); textStyle(BOLD); text("U",x,y);
+  fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(18); textStyle(BOLD); text("Y",x,y);
 }
 function drumDrawTom1(x, y) {
   fill(0, 200, 255); noStroke(); push(); translate(x, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop();
   stroke(0, 200, 255); strokeWeight(2); line(x + 12, y, x + 12, y - 30);
-  fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(18); textStyle(BOLD); text("I", x, y);
+  fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(18); textStyle(BOLD); text("T", x, y);
 }
 function drumDrawTom2(x, y) {
   fill(255, 220, 0); noStroke(); push(); translate(x, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop();
   stroke(255, 220, 0); strokeWeight(2); line(x + 12, y, x + 12, y - 30);
-  fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(18); textStyle(BOLD); text("F", x, y);
+  fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(18); textStyle(BOLD); text("U", x, y);
 }
 function drumDrawFloorTom(x, y) {
   fill(80, 255, 120); noStroke(); push(); translate(x, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop();
   stroke(80, 255, 120); strokeWeight(2); line(x + 12, y, x + 12, y - 70);
-  fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(18); textStyle(BOLD); text("H", x, y);
+  fill(0); noStroke(); textAlign(CENTER, CENTER); textSize(18); textStyle(BOLD); text("I", x, y);
 }
 function drumDrawKick(x, y) {
   fill(255, 80, 50); noStroke(); push(); translate(x-5, y); rotate(-PI / 6); ellipse(0, 0, 32, 25); pop();
