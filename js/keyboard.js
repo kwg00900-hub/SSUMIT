@@ -307,7 +307,7 @@ function keyboardCreateChart() {
   keyboard_nr(2, 0.5, 0.0);   // beat 180.0, 홀드 4.0
   keyboard_nr(5, 0.5, 0.0);   // beat 180.0, 홀드 4.0
   keyboard_nr(3, 0.5, 0.0);   // beat 180.0, 홀드 4.0
-  keyboard_nr(7, 0.5, 69.5);   // beat 180.0, 홀드 4.0
+  keyboard_nr(6, 0.5, 69.5);   // beat 180.0, 홀드 4.0
   
 
   // ================================================================
