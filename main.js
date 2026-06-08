@@ -1,3 +1,8 @@
+// 🎵 미리듣기(Preview) 관련 추가 전역 변수
+let imgPre, imgPlaying;
+let currentPreviewSound = null;
+let currentPreviewIdx = -1; // 현재 재생 중인 미리듣기 곡 인덱스 (-1은 재생 안 함)
+
 // 🛠️ [개발자 스페셜 치트] 상태 및 버튼 정의
 window.globalIsCheatMode = false;
 let imgDevOn, imgDevOff;
@@ -80,10 +85,14 @@ const GRADE_CUTLINE = {
 // ============================================
 // 🎵 곡 목록 정의
 // ============================================
+// ============================================
+// 🎵 곡 목록 정의 (미리듣기 파일 추가 버전)
+// ============================================
 const SONG_LIST = [
   {
     id:       'song1',
     file:     '126.mp3',
+    previewFile: 'together_pre.mp3', // 💡 미리듣기 추가
     title:    '투게더!',
     subtitle: '잔나비',
     bpm:      126,
@@ -96,7 +105,7 @@ const SONG_LIST = [
       DRUM2:     { start: 62757,  end: 77995  },
       KEYBOARD2: { start: 77995,  end: 93233  },
       BASS3:     { start: 93233,  end: 108471 },
-      DRUM3:     { start: 108471, end: 123710 },
+      DRUM3:     { start: 108471, textStyle: 'normal', end: 123710 },
       KEYBOARD3: { start: 123710, end: 138948 },
       BASS4:     { start: 138948, end: 150376 },
       KEYBOARD4: { start: 150376, end: 165614 },
@@ -106,6 +115,7 @@ const SONG_LIST = [
   {
     id:       'song2',
     file:     'dance_dance.mp3',
+    previewFile: 'DD_pre.mp3', // 💡 미리듣기 추가
     title:    'Dance Dance',
     subtitle: 'DAY6',
     bpm:      152,
@@ -210,7 +220,7 @@ function preload() {
   imgGrade['E'] = loadImage('assets/E_ssu.png');
   imgGrade['F'] = loadImage('assets/F_ssu.png');
 
-  // 💡 [추가] 도움말 GIF 파일 미리 로드하기
+  // 💡 도움말 GIF 파일 미리 로드하기
   for (let page of HELP_PAGES_DATA) {
     page.loadedImg = loadImage('assets/' + page.gifName);
   }
@@ -218,6 +228,13 @@ function preload() {
   // 🛠️ 개발자 치트 아이콘 이미지 로드
   imgDevOn  = loadImage('assets/dev_icon_on.png');
   imgDevOff = loadImage('assets/dev_icon_off.png');
+
+  // 🎵 미리듣기 아이콘 및 음원 로드 코드 추가
+  imgPre     = loadImage('assets/pre.png');
+  imgPlaying = loadImage('assets/playing.png');
+  for (let song of SONG_LIST) {
+    song.previewSound = loadSound('assets/' + song.previewFile);
+  }
 
   if (typeof keyboardPreload === 'function') keyboardPreload();
   if (typeof bassPreload     === 'function') bassPreload();
@@ -544,6 +561,29 @@ function drawSongCard(i) {
   let textColors  = [color(0,200,255), color(255,160,60), color(120,240,140)];
   for (let j = 0; j < song.sessions.length; j++) { fill(badgeColors[j]); rect(bx, r.y + 118, 80, 22, 5); fill(textColors[j]); textAlign(CENTER, CENTER); textSize(10); text(song.sessions[j], bx + 40, r.y + 129); bx += 88; }
   if (song.id === 'song2') { textAlign(RIGHT, BOTTOM); textSize(10); textStyle(NORMAL); fill(180, 100, 60, 180); text("⚠ 타임라인 미정", r.x + r.w - 12, r.y + r.h - 8); }
+
+  // 🎵 [추가] 우측 상단 미리듣기 버튼 계산 및 드로우
+  let btnW = 28, btnH = 28;
+  let btnX = r.x + r.w - btnW - 16;
+  let btnY = r.y + 16;
+  
+  let isBtnHov = (mouseX > btnX && mouseX < btnX + btnW && mouseY > btnY && mouseY < btnY + btnH);
+  
+  push();
+  imageMode(CORNER);
+  if (isBtnHov) {
+    drawingContext.shadowBlur = 12;
+    drawingContext.shadowColor = 'rgba(0, 230, 255, 0.6)';
+  }
+  
+  // 현재 이 곡의 미리듣기가 재생 중인지 체크
+  let isPlayingThis = (currentPreviewIdx === i && currentPreviewSound && currentPreviewSound.isPlaying());
+  let img = isPlayingThis ? imgPlaying : imgPre;
+  if (img) {
+    image(img, btnX, btnY, btnW, btnH);
+  }
+  pop();
+
   pop();
 }
 
@@ -563,6 +603,13 @@ function drawSelectBtn(btn, bgCol, txtCol) {
 // 🎮 게임 시작
 // ============================================
 function startEnsembleGame() {
+  // 🎵 [추가] 게임 플레이 진입 시 재생 중인 미리듣기가 있다면 확실히 완전 정지
+  if (currentPreviewSound && currentPreviewSound.isPlaying()) {
+    currentPreviewSound.stop();
+    currentPreviewIdx = -1;
+    currentPreviewSound = null;
+  }
+
   applySpeed(selectedSpeed);
   let song = SONG_LIST[selectedSongIdx];
   if (masterBgm) masterBgm.stop();
@@ -1016,9 +1063,22 @@ function mousePressed() {
       return;
     }
 
-    // 곡 카드 리스트 클릭 체크
-    for(let i=0;i<songCardRects.length;i++){
+    // 곡 카드 리스트 클릭 체크 (미리듣기 판정 영역 우선 가로채기 처리)
+    for(let i=0; i<songCardRects.length; i++){
       let r=songCardRects[i];
+      
+      // 미리듣기 버튼 절대 좌표 계산
+      let btnW = 28, btnH = 28;
+      let btnX = r.x + r.w - btnW - 16;
+      let btnY = r.y + 16;
+      
+      // 1순위 판정: 미리듣기 아이콘 영역을 정밀하게 눌렀을 때
+      if(mouseX > btnX && mouseX < btnX + btnW && mouseY > btnY && mouseY < btnY + btnH) {
+        togglePreview(i);
+        return;
+      }
+
+      // 2순위 판정: 미리듣기 버튼 외에 카드 본체를 클릭했을 때
       if(mouseX>r.x&&mouseX<r.x+r.w&&mouseY>r.y&&mouseY<r.y+r.h){
         selectedSongIdx=i;
         applySpeed(selectedSpeed); 
@@ -1080,6 +1140,12 @@ function handleVolumeSlider() {
   if (!volumeSlider) return;
   let dbValue = volumeSlider.value();
   if (masterBgm) masterBgm.amp(pow(10, dbValue / 20));
+  
+  // 🎵 [추가] 미리듣기 재생 중인 사운드가 있으면 슬라이더 볼륨 실시간 변경 연동
+  if (currentPreviewSound && currentPreviewSound.isPlaying()) {
+    currentPreviewSound.amp(pow(10, dbValue / 20));
+  }
+
   let isPlayingLive = (screenState === 'game' && !isPaused && !isGameOver && !isGameEnded);
   if (isPlayingLive) {
     volumeSlider.hide();
@@ -1105,4 +1171,43 @@ function drawCheatButton() {
     image(img, cheatBtnRect.x, cheatBtnRect.y, cheatBtnRect.w, cheatBtnRect.h);
   }
   pop();
+}
+
+// ============================================
+// 🎵 [신규 기능] 미리듣기 토글 오디오 제어 함수
+// ============================================
+function togglePreview(idx) {
+  // 1. 이미 다른 거든 같은거든 재생 중인 오디오가 있다면 정지
+  if (currentPreviewSound && currentPreviewSound.isPlaying()) {
+    currentPreviewSound.stop();
+    
+    // 만약 똑같은 곡의 미리듣기 버튼을 한 번 더 누른 거라면 재생 종료 후 완전 리턴
+    if (currentPreviewIdx === idx) {
+      currentPreviewIdx = -1;
+      currentPreviewSound = null;
+      return;
+    }
+  }
+
+  // 2. 새로운 곡의 미리듣기 세팅 및 재생
+  currentPreviewIdx = idx;
+  currentPreviewSound = SONG_LIST[idx].previewSound;
+  
+  if (currentPreviewSound) {
+    // 실시간 볼륨 슬라이더 값 반영 적용
+    if (volumeSlider) { 
+      let db = volumeSlider.value(); 
+      currentPreviewSound.amp(pow(10, db / 20)); 
+    }
+    
+    currentPreviewSound.play();
+    
+    // 💡 자연스럽게 음원이 완전히 끝났을 경우, 대기 아이콘 상태로 자동 초기화 원복
+    currentPreviewSound.onended(() => {
+      if (currentPreviewIdx === idx) {
+        currentPreviewIdx = -1;
+        currentPreviewSound = null;
+      }
+    });
+  }
 }
