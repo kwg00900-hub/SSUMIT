@@ -1,3 +1,17 @@
+// 💬 제작진 소감문 관련 전역 변수
+let selectedCreditIdx = -1; // -1: 선택 안됨, 0: 김도경, 1: 김도현, 2: 방준혁
+const CREDITS_DATA = [
+  { name: "김도경 (드럼)", comment: "드럼 노트를 카메라 모션 인식으로 처리하는 과정이 어려웠지만,\n완성하고 나니 정말 뿌듯합니다! 휘두르는 재미를 느껴보세요! 🥁" },
+  { name: "김도현 (베이스)", comment: "마우스 오버와 스페이스바 조합의 스트로크 구현에 공을 들였습니다.\n그루브 넘치는 베이스 라인을 재밌게 연주해 주세요! 🎸" },
+  { name: "방준혁 (건반)", comment: "건반 세션의 완벽한 싱크와 타임라인 매핑, 그리고\n전체적인 시스템 UI 통합을 맡았습니다. 재미있게 즐겨주세요! 🎹" }
+];
+// 각 크레딧 이름의 클릭 영역 저장을 위한 배열
+let creditClickRects = [
+  { x: 0, y: 0, w: 80, h: 40 },
+  { x: 0, y: 0, w: 80, h: 40 },
+  { x: 0, y: 0, w: 80, h: 40 }
+];
+
 // 🎵 미리듣기(Preview) 관련 추가 전역 변수
 let imgPre, imgPlaying;
 let currentPreviewSound = null;
@@ -785,11 +799,82 @@ function drawCredits() {
   let cy = height * 0.80, bw = min(500, width * 0.8);
   push(); rectMode(CENTER); noFill(); stroke(30, 41, 59); strokeWeight(1.5); rect(width / 2, cy + 30, bw, 100, 10); pop();
   push(); textAlign(CENTER, TOP); textSize(13); textStyle(BOLD); fill(148, 163, 184); text("— PRODUCTION CREDITS —", width / 2, cy); pop();
-  push(); textAlign(CENTER, TOP); textSize(14); fill(218, 223, 230);
+  
   let sp = bw / 4, sx = width / 2;
-  text("🥁 드럼\n김도경", sx - sp, cy + 25);
-  text("🎸 베이스\n김도현", sx,    cy + 25);
-  text("🎹 건반\n방준혁",  sx + sp, cy + 25); pop();
+  let memberPositions = [
+    { x: sx - sp, y: cy + 25, label: "🥁 드럼\n김도경", idx: 0 },
+    { x: sx,      y: cy + 25, label: "🎸 베이스\n김도현", idx: 1 },
+    { x: sx + sp, y: cy + 25, label: "🎹 건반\n방준혁",  idx: 2 }
+  ];
+
+  // 각 멤버 이름 그리기 및 마우스 오버/클릭 영역 세팅
+  for (let m of memberPositions) {
+    // 마우스 클릭 판정을 위한 절대 좌표 바운딩 박스 갱신 (텍스트 중심 기준 좌우 45px, 상하 20px 내외)
+    creditClickRects[m.idx].x = m.x - 45;
+    creditClickRects[m.idx].y = m.y;
+    creditClickRects[m.idx].w = 90;
+    creditClickRects[m.idx].h = 45;
+
+    let isHov = (mouseX > creditClickRects[m.idx].x && mouseX < creditClickRects[m.idx].x + creditClickRects[m.idx].w &&
+                 mouseY > creditClickRects[m.idx].y && mouseY < creditClickRects[m.idx].y + creditClickRects[m.idx].h);
+
+    push();
+    textAlign(CENTER, TOP);
+    textSize(14);
+    if (isHov) {
+      textStyle(BOLD);
+      fill(0, 230, 255); // 마우스 올리면 시안색으로 반짝
+      cursor(HAND);
+    } else {
+      textStyle(NORMAL);
+      fill(218, 223, 230);
+    }
+    text(m.label, m.x, m.y);
+    pop();
+  }
+
+  // 뿅! 나타나는 소감문 팝업 오버레이 (선택되었을 때만 그리기)
+  if (selectedCreditIdx !== -1) {
+    let data = CREDITS_DATA[selectedCreditIdx];
+    push();
+    // 화면 전체 어둡게 배경 깔기
+    rectMode(CORNER);
+    fill(0, 0, 0, 150);
+    rect(0, 0, width, height);
+
+    // 팝업 박스
+    rectMode(CENTER);
+    let pW = 480, pH = 180;
+    drawingContext.shadowBlur = 30;
+    drawingContext.shadowColor = 'rgba(0, 229, 255, 0.4)';
+    fill(20, 22, 33);
+    stroke(0, 230, 255);
+    strokeWeight(2);
+    rect(width / 2, height / 2, pW, pH, 15);
+
+    // 팝업 텍스트
+    drawingContext.shadowBlur = 0;
+    noStroke();
+    textAlign(CENTER, CENTER);
+    
+    // 이름 타이틀
+    fill(0, 230, 255);
+    textStyle(BOLD);
+    textSize(18);
+    text(`✨ 한 줄 소감: ${data.name} ✨`, width / 2, height / 2 - 40);
+
+    // 내용
+    fill(230, 235, 245);
+    textStyle(NORMAL);
+    textSize(14);
+    text(data.comment, width / 2, height / 2 + 10);
+
+    // 닫기 안내
+    fill(130, 140, 160);
+    textSize(11);
+    text("[ 바깥이나 팝업을 클릭하면 닫힙니다 ]", width / 2, height / 2 + 65);
+    pop();
+  }
 }
 
 function drawBackgroundGrid() {
@@ -808,8 +893,7 @@ function drawStartScreen() {
   push(); textAlign(CENTER, CENTER); textStyle(BOLD);
   textSize(84); fill(0, 230, 255, 30); text("SSUMIT", width / 2 + 3, height / 2 - 97);
   fill(0, 230, 255); text("SSUMIT", width / 2, height / 2 - 100);
-  textSize(16); textStyle(NORMAL); fill(160, 170, 190); text("  textSize(16); textStyle(NORMAL); fill(160, 170, 190); text("하나의 곡을 세 가지 세션으로 즐길 수 있는 밴드 컨셉의 인터랙티브 리듬게임", width / 2, height / 2 - 40);
-", width / 2, height / 2 - 40);
+  textSize(16); textStyle(NORMAL); fill(160, 170, 190); text("합주 일렉트릭 앙상블 리듬 게임", width / 2, height / 2 - 40);
   textSize(13); fill(100, 110, 130); text("개발팀 썸썸써밋 : 김도경, 김도현, 방준혁", width / 2, height / 2 - 15); pop();
   drawButton(uiButtons.start); drawButton(uiButtons.help); drawButton(uiButtons.full);
   if (isHelpVisible) drawHelpPopup();
@@ -1034,6 +1118,24 @@ function triggerGameOver() {
 // 🖱️ 입력 이벤트
 // ============================================
 function mousePressed() {
+  // 💬 [소감문 팝업 제어] 소감문이 열려있다면 화면 어디든 클릭 시 팝업을 닫음
+  if (selectedCreditIdx !== -1) {
+    selectedCreditIdx = -1;
+    return;
+  }
+
+  // 💬 결과화면/게임오버/시작화면 등에서 크레딧 클릭 여부를 먼저 검사
+  // (isGameOver 또는 isGameEnded 상태이거나 start 스크린일 때 크레딧이 노출되므로 이때 클릭 허용)
+  if (isGameOver || isGameEnded || screenState === 'start') {
+    for (let i = 0; i < creditClickRects.length; i++) {
+      let cr = creditClickRects[i];
+      if (mouseX > cr.x && mouseX < cr.x + cr.w && mouseY > cr.y && mouseY < cr.y + cr.h) {
+        selectedCreditIdx = i; // 소감문 뿅!
+        return;
+      }
+    }
+  }
+
   // 💡 [도움말 제어] 도움말 창이 열려있을 때의 독립 팝업 클릭 핸들러
   if (isHelpVisible) {
     let pw = 600, ph = 520;
