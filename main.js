@@ -19,17 +19,17 @@ const HELP_PAGES_DATA = [
   {
     title: "< 3. 드럼 플레이 방법 >",
     gifName: "drum.gif",
-    desc: "지정된 키를 눌러 연주합니다!\n심벌즈는 한 손을 들어 연주합니다."
+    desc: "악보에 맞춰 지정된 키를 눌러 연주합니다.\n라이드 심벌: E  하이햇: R\n스네어: Y  스몰탐: T  미들탐: U  플로어탐: I\n\n심벌은 실제로 연주하는 것처럼 힘껏 손을 휘둘러주세요!\n카메라 화면에서 손을 인식해 노트를 처리합니다!"
   },
   {
     title: "< 4. 악보 넘기기 가이드 >",
     gifName: "pageturn.gif",
-    desc: "각 세션이 끝난 후 첫 마디에 창이 뜹니다.\n창이 뜨면 손을 휙!"
+    desc: "각 세션이 끝난 후 첫 마디에 창이 뜹니다.\n창이 뜨면 손을 휙! 움직여 악보를 넘겨주세요!\n\n4박자 안에 악보를 넘기지 못하면 GAME OVER~!"
   },
   {
     title: "< 5. 기타(악기 아님) 설정 >",
     gifName: "tips.gif",
-    desc: "배속 설정과 DRUM-Expert 모드로 난이도를 조절할 수 있습니다.\n우측 하단에서 볼륨 조절이가능합니다."
+    desc: "원하는 곡을 선택할 수 있고,\n 배속 설정과 DRUM-Expert 모드로 난이도를 조절할 수 있습니다.\n우측 하단에서 볼륨 조절이 가능합니다.\n\n* DRUM-Expert 모드를 켜면 하이햇과 라이드 심벌 노트가 추가되어 난이도가 상승합니다! *"
   }
 ];
 
@@ -711,7 +711,7 @@ function drawStartScreen() {
   textSize(84); fill(0, 230, 255, 30); text("SSUMIT", width / 2 + 3, height / 2 - 97);
   fill(0, 230, 255); text("SSUMIT", width / 2, height / 2 - 100);
   textSize(16); textStyle(NORMAL); fill(160, 170, 190); text("합주 일렉트릭 앙상블 리듬 게임", width / 2, height / 2 - 40);
-  textSize(13); fill(100, 110, 130); text("개발팀 썸썸써밋 : 김도경, 김도현, 김도현, 방준혁", width / 2, height / 2 - 15); pop();
+  textSize(13); fill(100, 110, 130); text("개발팀 썸썸써밋 : 김도경, 김도현, 방준혁", width / 2, height / 2 - 15); pop();
   drawButton(uiButtons.start); drawButton(uiButtons.help); drawButton(uiButtons.full);
   if (isHelpVisible) drawHelpPopup();
 
