@@ -1,3 +1,8 @@
+// 🛠️ [개발자 스페셜 치트] 상태 및 버튼 정의
+window.globalIsCheatMode = false;
+let imgDevOn, imgDevOff;
+let cheatBtnRect = { x: 25, y: 0, w: 50, h: 50 }; // 위치는 updateUIElements에서 동적 세팅
+
 // 💡 HOW TO PLAY 멀티 페이지 관리를 위한 전역 변수 및 5개 빈 페이지 데이터
 let currentHelpPage = 0; 
 const HELP_PAGES_DATA = [
@@ -210,6 +215,10 @@ function preload() {
     page.loadedImg = loadImage('assets/' + page.gifName);
   }
 
+  // 🛠️ 개발자 치트 아이콘 이미지 로드
+  imgDevOn  = loadImage('assets/dev_icon_on.png');
+  imgDevOff = loadImage('assets/dev_icon_off.png');
+
   if (typeof keyboardPreload === 'function') keyboardPreload();
   if (typeof bassPreload     === 'function') bassPreload();
   if (typeof drumPreload     === 'function') drumPreload();
@@ -253,6 +262,9 @@ function updateUIElements() {
   selectButtons.back.y  = 30;
   selectButtons.hihat.x = width / 2 - 90;
   selectButtons.hihat.y = height * 0.85 - 55;
+
+  // 🛠️ 개발자 치트 버튼 위치 세팅 (왼쪽 하단 여백 25px 적용)
+  cheatBtnRect.y = height - cheatBtnRect.h - 25;
 
   if (volumeSlider) {
     volumeSlider.position(width - 160, height - 35);
@@ -433,9 +445,18 @@ function draw() {
         if (c > globalMaxCombo) globalMaxCombo = c;
       }
 
+      // 🛠️ [치트 코드 반영] 악보 넘기기 실패 시 판정 부분 소폭 수정
       if (idx > 0) {
         let gpe = csd.start + FOUR_BEATS_MS;
-        if (globalSongTime >= gpe && !motionSuccessList[cs.key]) { triggerGameOver(); return; }
+        if (globalSongTime >= gpe && !motionSuccessList[cs.key]) { 
+          if (!window.globalIsCheatMode) {
+            triggerGameOver(); 
+            return; 
+          } else {
+            // 치트모드가 켜져 있으면 게임오버를 시키지 않고, 강제로 성공 처리하여 창을 닫고 넘깁니다.
+            motionSuccessList[cs.key] = true;
+          }
+        }
       }
 
       if      (cs.type === "KEYBOARD" && typeof keyboardDraw === 'function') keyboardDraw();
@@ -493,6 +514,9 @@ function drawSelectScreen() {
   drawSelectBtn(hhBtn, hhBgColor, color(0, 0, 0));
   drawSelectBtn(selectButtons.play, color(0, 200, 255), color(0, 0, 0));
   drawSelectBtn(selectButtons.back, color(60, 70, 90), color(200, 210, 220));
+
+  // 🛠️ 곡 선택 화면에서도 세팅 편의성을 위해 왼쪽 하단에 치트 버튼 노출
+  drawCheatButton();
 }
 
 function drawSongCard(i) {
@@ -690,6 +714,9 @@ function drawStartScreen() {
   textSize(13); fill(100, 110, 130); text("개발팀 썸썸써밋 : 김도경, 김도현, 김도현, 방준혁", width / 2, height / 2 - 15); pop();
   drawButton(uiButtons.start); drawButton(uiButtons.help); drawButton(uiButtons.full);
   if (isHelpVisible) drawHelpPopup();
+
+  // 🛠️ 왼쪽 하단에 개발자 치트 버튼 노출
+  drawCheatButton();
 }
 
 function drawPausedScreen() {
@@ -927,13 +954,22 @@ function mousePressed() {
     }
     
     // 3. 하단 [ 클릭하여 닫기 ] 영역 클릭
-    if (mouseX > width/2 - 80 && mouseX < width/2 + 80 && mouseY > py + ph - 75 && mouseY < py + ph - 35) {
+    if (mouseX > width/2 - 80 && width/2 + 80 && mouseY > py + ph - 75 && mouseY < py + ph - 35) {
       isHelpVisible = false;
       currentHelpPage = 0; 
       return; 
     }
     
-    return; // 팝업 외 배경 클릭 시 뒷 배경 버튼 오작동 방지용 차단막
+    return; 
+  }
+
+  // 🛠️ [치트 버튼 토글 체크] 대기화면이나 곡 선택 화면에서 아이콘 클릭 시 토글 실행
+  if (screenState === 'start' || screenState === 'select') {
+    if (mouseX > cheatBtnRect.x && mouseX < cheatBtnRect.x + cheatBtnRect.w &&
+        mouseY > cheatBtnRect.y && mouseY < cheatBtnRect.y + cheatBtnRect.h) {
+      window.globalIsCheatMode = !window.globalIsCheatMode;
+      return; // 다른 UI 요소 클릭 판정 방지
+    }
   }
 
   // 📺 [공통] 전체화면 버튼 클릭 체크
@@ -951,7 +987,7 @@ function mousePressed() {
     if(mouseX>uiButtons.help.x&&mouseX<uiButtons.help.x+uiButtons.help.w&&
        mouseY>uiButtons.help.y&&mouseY<uiButtons.help.y+uiButtons.help.h){
       isHelpVisible=true; 
-      currentHelpPage = 0; // 열 때 무조건 1페이지부터 뜨도록 초기화
+      currentHelpPage = 0; 
       return;
     }
   }
@@ -1054,4 +1090,19 @@ function handleVolumeSlider() {
     text(`VOLUME: ${sign}${dbValue} dB`, width - 30, height - 42);
     pop();
   }
+}
+
+function drawCheatButton() {
+  push();
+  imageMode(CORNER);
+  let img = window.globalIsCheatMode ? imgDevOn : imgDevOff;
+  if (img) {
+    // 켜진 상태일 때는 시안색 네온 글로우 효과 추가
+    if (window.globalIsCheatMode) {
+      drawingContext.shadowBlur = 15;
+      drawingContext.shadowColor = 'rgba(0, 229, 255, 0.6)';
+    }
+    image(img, cheatBtnRect.x, cheatBtnRect.y, cheatBtnRect.w, cheatBtnRect.h);
+  }
+  pop();
 }
