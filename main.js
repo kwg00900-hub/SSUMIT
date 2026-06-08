@@ -22,9 +22,9 @@ const HELP_PAGES_DATA = [
     desc: "여기에 4페이지 가이드 설명을 적으세요.\nCRITICAL ALERT가 뜨면 손을 휙!"
   },
   {
-    title: "< 5. 일시정지 및 꿀팁 >",
+    title: "< 5. 기타(악기 아님) 설정 >",
     gifName: "tips.gif",
-    desc: "여기에 5페이지 가이드 설명을 적으세요.\nESC 키를 누르면 일시정지가 가능합니다."
+    desc: "배속 설정과 DRUM-Expert 모드로 난이도를 조절할 수 있습니다.\n우측 하단에서 볼륨 조절이가능합니다."
   }
 ];
 
