@@ -196,7 +196,7 @@ function preload() {
   imgDrumSSU     = loadImage('assets/drum_ssu.png');
   imgKeyboardSSU = loadImage('assets/keyboard_ssu.png');
 
-  // 🏆 등급 이미지 로드 (assets 폴더에 S_ssu.png ~ F_ssu.png 배치 필요)
+  // 🏆 등급 이미지 로드
   imgGrade['S'] = loadImage('assets/S_ssu.png');
   imgGrade['A'] = loadImage('assets/A_ssu.png');
   imgGrade['B'] = loadImage('assets/B_ssu.png');
@@ -204,6 +204,11 @@ function preload() {
   imgGrade['D'] = loadImage('assets/D_ssu.png');
   imgGrade['E'] = loadImage('assets/E_ssu.png');
   imgGrade['F'] = loadImage('assets/F_ssu.png');
+
+  // 💡 [추가] 도움말 GIF 파일 미리 로드하기
+  for (let page of HELP_PAGES_DATA) {
+    page.loadedImg = loadImage('assets/' + page.gifName);
+  }
 
   if (typeof keyboardPreload === 'function') keyboardPreload();
   if (typeof bassPreload     === 'function') bassPreload();
@@ -750,7 +755,6 @@ function drawHelpPopup() {
   fill(0, 0, 0, 235); 
   rect(0, 0, width, height);
   
-  // 팝업 창 크기 및 좌표
   let pw = 600, ph = 520;
   let px = width / 2 - pw / 2;
   let py = height / 2 - ph / 2;
@@ -760,11 +764,10 @@ function drawHelpPopup() {
   strokeWeight(2);
   rect(px, py, pw, ph, 20);
   
-  // 예외 방지 안전장치
   if (typeof currentHelpPage === 'undefined') currentHelpPage = 0;
   let page = HELP_PAGES_DATA[currentHelpPage];
   
-  // 1. 상단 제목 (기존 p5 상수 사용)
+  // 1. 상단 제목
   fill(0, 230, 255); 
   noStroke(); 
   textAlign(CENTER, TOP); 
@@ -772,7 +775,7 @@ function drawHelpPopup() {
   textSize(20);
   text(page.title, width / 2, py + 30);
   
-  // 2. 중간 GIF 영역
+  // 2. 중간 GIF 영역 (실제 이미지 출력으로 변경)
   let gifW = 420, gifH = 236;
   let gifX = width / 2 - gifW / 2;
   let gifY = py + 75;
@@ -781,12 +784,19 @@ function drawHelpPopup() {
   strokeWeight(1);
   rect(gifX, gifY, gifW, gifH, 10);
   
-  fill(130, 145, 170); 
-  noStroke(); 
-  textStyle(NORMAL); 
-  textSize(13); 
-  textAlign(CENTER, CENTER);
-  text("[ GIF 파일 표시 영역 ]\n파일명: " + page.gifName + "\n\n(※ 여기에 플레이 예시 화면이 뿅 샤랄라 등장!)", width / 2, gifY + gifH / 2);
+  // 이미지 그리기
+  if (page.loadedImg) {
+    imageMode(CENTER);
+    image(page.loadedImg, width / 2, gifY + gifH / 2, gifW, gifH);
+  } else {
+    // 이미지 로드 실패 시 예외 처리 박스
+    fill(130, 145, 170); 
+    noStroke(); 
+    textStyle(NORMAL); 
+    textSize(13); 
+    textAlign(CENTER, CENTER);
+    text("[ GIF 이미지를 불러오는 중... ]\n" + page.gifName, width / 2, gifY + gifH / 2);
+  }
   
   // 3. 하단 설명 텍스트
   fill(220, 230, 245); 
