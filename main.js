@@ -44,6 +44,8 @@ const HELP_PAGES_DATA = [
 // ===================================================
 
 let masterBgm;
+let lobbyBgm;          // 🎶 홈/곡 선택 화면 배경음악
+let lobbyBgmFading = false;  // 페이드아웃 진행 중 여부
 let globalSongTime = 0;
 let isSongPlaying  = false;
 let isHelpVisible  = false;
@@ -207,6 +209,7 @@ function applySpeed(speed) {
 // ============================================
 function preload() {
   masterBgm      = loadSound(SONG_LIST[0].file);
+  lobbyBgm       = loadSound('assets/background.mp3'); // 🎶 배경음악 로드
   imgBassSSU     = loadImage('assets/bass_ssu.png');
   imgDrumSSU     = loadImage('assets/drum_ssu.png');
   imgKeyboardSSU = loadImage('assets/keyboard_ssu.png');
@@ -364,6 +367,47 @@ function togglePause() {
 }
 
 // ============================================
+// 🎶 로비(홈/곡 선택) 배경음악 제어
+// ============================================
+const LOBBY_BGM_VOLUME = 0.3; // 🔉 배경음악 기본 볼륨 비율 (0.0 ~ 1.0)
+
+function getLobbyBgmVolume() {
+  let db = volumeSlider ? volumeSlider.value() : 0;
+  return pow(10, db / 20) * LOBBY_BGM_VOLUME;
+}
+
+function playLobbyBgm() {
+  if (!lobbyBgm) return;
+  lobbyBgmFading = false;
+  if (lobbyBgm.isPlaying()) return;
+  // 미리듣기 재생 중이면 건드리지 않음
+  if (currentPreviewSound && currentPreviewSound.isPlaying()) return;
+  lobbyBgm.setVolume(getLobbyBgmVolume());
+  lobbyBgm.loop();
+}
+
+function stopLobbyBgm(immediate) {
+  if (!lobbyBgm || !lobbyBgm.isPlaying()) return;
+  if (immediate) {
+    lobbyBgmFading = false;
+    lobbyBgm.stop();
+  } else {
+    // 페이드아웃: 0.8초에 걸쳐 볼륨 0으로
+    lobbyBgmFading = true;
+    lobbyBgm.setVolume(0, 0.8);
+    setTimeout(() => {
+      if (lobbyBgm && lobbyBgm.isPlaying()) lobbyBgm.stop();
+      lobbyBgmFading = false;
+    }, 850);
+  }
+}
+
+function updateLobbyBgmVolume() {
+  if (!lobbyBgm || !lobbyBgm.isPlaying() || lobbyBgmFading) return;
+  lobbyBgm.setVolume(getLobbyBgmVolume());
+}
+
+// ============================================
 // 🖼️ 메인 드로우 루프
 // ============================================
 function draw() {
@@ -373,9 +417,13 @@ function draw() {
 
   if (screenState === 'start') {
     restartBtn.hide();
+    playLobbyBgm();        // 🎶 홈 화면 진입 시 배경음악 재생
+    updateLobbyBgmVolume();
     drawStartScreen();
   } else if (screenState === 'select') {
     restartBtn.hide();
+    playLobbyBgm();        // 🎶 곡 선택 화면에서도 배경음악 유지
+    updateLobbyBgmVolume();
     drawSelectScreen();
   } else if (isGameOver) {
     drawGameOverScreen();
@@ -609,6 +657,9 @@ function startEnsembleGame() {
     currentPreviewIdx = -1;
     currentPreviewSound = null;
   }
+
+  // 🎶 배경음악 페이드아웃 후 정지
+  stopLobbyBgm(false);
 
   applySpeed(selectedSpeed);
   let song = SONG_LIST[selectedSongIdx];
@@ -1185,11 +1236,22 @@ function togglePreview(idx) {
     if (currentPreviewIdx === idx) {
       currentPreviewIdx = -1;
       currentPreviewSound = null;
+      // 🎶 배경음악 재개
+      if (lobbyBgm && !lobbyBgm.isPlaying()) {
+        lobbyBgm.setVolume(0);
+        lobbyBgm.loop();
+        lobbyBgm.setVolume(getLobbyBgmVolume(), 0.4); // 0.4초 페이드인
+      }
       return;
     }
   }
 
-  // 2. 새로운 곡의 미리듣기 세팅 및 재생
+  // 2. 새로운 곡의 미리듣기 세팅 및 재생 — 배경음악 먼저 일시정지
+  if (lobbyBgm && lobbyBgm.isPlaying()) {
+    lobbyBgm.setVolume(0, 0.3); // 0.3초 페이드아웃
+    setTimeout(() => { if (lobbyBgm) lobbyBgm.pause(); }, 320);
+  }
+
   currentPreviewIdx = idx;
   currentPreviewSound = SONG_LIST[idx].previewSound;
   
@@ -1202,11 +1264,17 @@ function togglePreview(idx) {
     
     currentPreviewSound.play();
     
-    // 💡 자연스럽게 음원이 완전히 끝났을 경우, 대기 아이콘 상태로 자동 초기화 원복
+    // 💡 자연스럽게 음원이 완전히 끝났을 경우, 대기 아이콘 상태로 자동 초기화 원복 + 배경음악 재개
     currentPreviewSound.onended(() => {
       if (currentPreviewIdx === idx) {
         currentPreviewIdx = -1;
         currentPreviewSound = null;
+        // 🎶 배경음악 페이드인 재개
+        if (lobbyBgm && !lobbyBgm.isPlaying()) {
+          lobbyBgm.setVolume(0);
+          lobbyBgm.loop();
+          lobbyBgm.setVolume(getLobbyBgmVolume(), 0.4);
+        }
       }
     });
   }
