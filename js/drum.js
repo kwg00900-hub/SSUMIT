@@ -511,8 +511,8 @@ function drumDraw() {
   image(drumCapture, 0, 0, 400, 150);
   pop();
 
-  let leftCircleHit = drumCheckCircleMotion(320, 95, 55);
-  let rightCircleHit = drumCheckCircleMotion(80, 95, 55);
+  let leftCircleHit = drumCheckCircleMotion(320, 95, 38);
+  let rightCircleHit = drumCheckCircleMotion(80, 95, 38);
   if (leftCircleHit || rightCircleHit) {
     drumCheckHit("Crash");
     // 카메라 좌우에 따라 다른 심벌 플래시 (rightCircleHit=왼쪽손→오른쪽심벌 CAM, leftCircleHit=오른쪽)
@@ -530,8 +530,8 @@ function drumDraw() {
   // 모션 감지 원 (베이스 시안 톤 통일)
   push();
   stroke(0, 255, 200, 150); strokeWeight(3); noFill();
-  circle(380, 95, 110);
-  circle(620, 95, 110);
+  circle(380, 95, 76);
+  circle(620, 95, 76);
   pop();
 
   // 🌟 오선지 (양쪽 끝까지 확장 → 뿅 사라짐 방지)
