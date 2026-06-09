@@ -893,7 +893,7 @@ function drawStartScreen() {
   push(); textAlign(CENTER, CENTER); textStyle(BOLD);
   textSize(84); fill(0, 230, 255, 30); text("SSUMIT", width / 2 + 3, height / 2 - 97);
   fill(0, 230, 255); text("SSUMIT", width / 2, height / 2 - 100);
-  textSize(16); textStyle(NORMAL); fill(160, 170, 190); text("합주 일렉트릭 앙상블 리듬 게임", width / 2, height / 2 - 40);
+  textSize(16); textStyle(NORMAL); fill(160, 170, 190); text("하나의 곡을 세 가지 세션으로 즐길 수 있는 밴드 컨셉의 인터랙티브 리듬게임", width / 2, height / 2 - 40);
   textSize(13); fill(100, 110, 130); text("개발팀 썸썸써밋 : 김도경, 김도현, 방준혁", width / 2, height / 2 - 15); pop();
   drawButton(uiButtons.start); drawButton(uiButtons.help); drawButton(uiButtons.full);
   if (isHelpVisible) drawHelpPopup();
