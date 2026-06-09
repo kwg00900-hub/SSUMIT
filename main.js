@@ -898,19 +898,87 @@ function drawBackgroundGrid() {
   for (let j = 0; j < height; j += 60) line(0, j, width, j);
 }
 
+// ============================================
+// 🎨 메인 화면 드로우 함수 (악기 애니메이션 추가 버전)
+// ============================================
 function drawStartScreen() {
+  // --- 애니메이션을 위한 시간 변수 ---
+  let t = millis() / 1000; // 초 단위 시간
+
+  // --- 1. 배경 악기 이미지 애니메이션 및 드로우 ---
   push();
   imageMode(CENTER);
-  if (imgBassSSU)     { let bW = width * 0.20; image(imgBassSSU,     width * 0.15, height * 0.30, bW, (imgBassSSU.height / imgBassSSU.width) * bW); }
-  if (imgDrumSSU)     { let dW = width * 0.22; image(imgDrumSSU,     width * 0.85, height * 0.70, dW, (imgDrumSSU.height / imgDrumSSU.width) * dW); }
-  if (imgKeyboardSSU) { let kW = width * 0.22; image(imgKeyboardSSU, width * 0.15, height * 0.80, kW, (imgKeyboardSSU.height / imgKeyboardSSU.width) * kW); }
+
+  // (1) 🎸 베이스 (왼쪽 상단): 부드럽게 둥둥 뜨고 아주 약간 회전
+  if (imgBassSSU) {
+    let bW = width * 0.20;
+    let bH = (imgBassSSU.height / imgBassSSU.width) * bW;
+    let bX = width * 0.15;
+    let bY = height * 0.30;
+
+    // 모션 계산 (sin함수 활용)
+    let y_off = sin(t * 1.5) * 12;      // 위아래 12px 진폭, 느린 속도
+    let r_off = sin(t * 0.8) * 0.015;   // ±0.015 라디안 회전 (약 0.9도), 매우 느림
+
+    push();
+    translate(bX, bY);       // 원래 위치로 중심 이동
+    translate(0, y_off);     // 위아래 이동 적용
+    rotate(r_off);           // 회전 적용
+    image(imgBassSSU, 0, 0, bW, bH); // 0,0 위치에 그리기 (중심점 기준)
+    pop();
+  }
+
+  // (2) 🥁 드럼 (오른쪽 하단): 조금 더 역동적으로 위아래로 튀고 회전
+  if (imgDrumSSU) {
+    let dW = width * 0.22;
+    let dH = (imgDrumSSU.height / imgDrumSSU.width) * dW;
+    let dX = width * 0.85;
+    let dY = height * 0.70;
+
+    // 모션 계산
+    let y_off = sin(t * 2.2) * 18;      // 위아래 18px 진폭, 약간 빠른 속도
+    let r_off = sin(t * 1.2) * 0.03;    // ±0.03 라디안 회전 (약 1.7도), 중간 속도
+
+    push();
+    translate(dX, dY);
+    translate(0, y_off);
+    rotate(r_off);
+    image(imgDrumSSU, 0, 0, dW, dH);
+    pop();
+  }
+
+  // (3) 🎹 키보드 (왼쪽 하단): 미세하게 둥둥 뜨면서 좌우로 흔들림 (회전 없이)
+  if (imgKeyboardSSU) {
+    let kW = width * 0.22;
+    let kH = (imgKeyboardSSU.height / imgKeyboardSSU.width) * kW;
+    let kX = width * 0.15;
+    let kY = height * 0.80;
+
+    // 모션 계산
+    let y_off = sin(t * 1.8) * 10;      // 위아래 10px 진폭, 중간 속도
+    let x_off = cos(t * 1.4) * 6;       // 좌우 6px 진폭, cos함수로 y와 타이밍 다르게
+
+    push();
+    translate(kX, kY);
+    translate(x_off, y_off); // 좌우, 위아래 이동 적용
+    image(imgKeyboardSSU, 0, 0, kW, kH);
+    pop();
+  }
   pop();
+
+  // --- 2. 타이틀 및 UI 요소 드로우 (기존과 동일) ---
   push(); textAlign(CENTER, CENTER); textStyle(BOLD);
   textSize(84); fill(0, 230, 255, 30); text("SSUMIT", width / 2 + 3, height / 2 - 97);
   fill(0, 230, 255); text("SSUMIT", width / 2, height / 2 - 100);
   textSize(16); textStyle(NORMAL); fill(160, 170, 190); text("하나의 곡을 세 가지 세션으로 즐길 수 있는 밴드 컨셉의 인터랙티브 리듬게임", width / 2, height / 2 - 40);
   textSize(13); fill(100, 110, 130); text("개발팀 썸썸써밋 : 김도경, 김도현, 방준혁", width / 2, height / 2 - 15); pop();
-  drawButton(uiButtons.start); drawButton(uiButtons.help); drawButton(uiButtons.full);
+  
+  // 버튼들 그리기
+  drawButton(uiButtons.start); 
+  drawButton(uiButtons.help); 
+  drawButton(uiButtons.full);
+  
+  // 도움말 팝업
   if (isHelpVisible) drawHelpPopup();
 
   // 🛠️ 왼쪽 하단에 개발자 치트 버튼 노출
