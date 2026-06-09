@@ -334,10 +334,10 @@ function keyboardCreateChart() {
   keyboard_hr(3, 2.0, 1.5);   // beat 276.0, 홀드 2.0, 쉼 1.5
 
   keyboardSeek(279.5);
-  keyboard_hr(4, 2.0, 1.5);   // beat 279.5, 홀드 1.0
+  keyboard_hr(4, 2.0, 1.0);   // beat 279.5, 홀드 1.0
   keyboard_hr(4, 1.0, 0.5);
   keyboard_hr(3, 2.0, 1.5);
-  keyboard_hr(3, 2.0, 1.5);
+  keyboard_hr(3, 2.0, 30.0);
 
   // ================================================================
   // 구간 4: (beat 316 ~)
