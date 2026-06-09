@@ -227,7 +227,84 @@ function applySpeed(speed) {
 // ============================================
 // 🔧 초기화
 // ============================================
+// ============================================
+// 🔧 초기화 (실시간 로딩 스크린 & 퍼센테이지 구현 버전)
+// ============================================
 function preload() {
+  // 1. 게임의 사이버펑크/네온 아케이드 테마에 맞춘 로딩 화면 DOM 생성 및 스타일 설정
+  let loadingDiv = document.getElementById('p5_loading');
+  if (!loadingDiv) {
+    loadingDiv = document.createElement('div');
+    loadingDiv.id = 'p5_loading';
+    document.body.appendChild(loadingDiv);
+  }
+  
+  loadingDiv.style.position = 'fixed';
+  loadingDiv.style.top = '0';
+  loadingDiv.style.left = '0';
+  loadingDiv.style.width = '100vw';
+  loadingDiv.style.height = '100vh';
+  loadingDiv.style.backgroundColor = '#0f172a'; // 메인 background(15, 23, 42)와 통일
+  loadingDiv.style.display = 'flex';
+  loadingDiv.style.flexDirection = 'column';
+  loadingDiv.style.justifyContent = 'center';
+  loadingDiv.style.alignItems = 'center';
+  loadingDiv.style.color = '#00E5FF';
+  loadingDiv.style.fontFamily = 'Helvetica, Arial, sans-serif';
+  loadingDiv.style.zIndex = '9999';
+  
+  loadingDiv.innerHTML = `
+    <div style="font-size: 28px; font-weight: bold; margin-bottom: 10px; letter-spacing: 3px; text-shadow: 0 0 15px rgba(0,229,255,0.6);">LOADING GAME</div>
+    <div id="loading_percent" style="font-size: 22px; font-weight: bold; margin-bottom: 25px; color: #38bdf8; font-family: monospace;">0%</div>
+    <div style="width: 280px; height: 8px; background-color: #1e293b; border-radius: 4px; overflow: hidden; border: 1px solid #334155; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);">
+      <div id="loading_bar" style="width: 0%; height: 100%; background-color: #00E5FF; box-shadow: 0 0 12px #00E5FF; transition: width 0.1s ease-out;"></div>
+    </div>
+  `;
+
+  // 2. 자산 로딩 상태를 추적하기 위한 카운터 변수 및 게이지 갱신 함수
+  let totalAssets = 0;
+  let loadedAssets = 0;
+
+  function assetLoaded() {
+    loadedAssets++;
+    // preload()가 동기로 실행되는 중에도 안전하게 실시간 퍼센트 계산
+    let percent = totalAssets > 0 ? Math.floor((loadedAssets / totalAssets) * 100) : 0;
+    if (percent > 100) percent = 100;
+    
+    let bar = document.getElementById('loading_bar');
+    let text = document.getElementById('loading_percent');
+    if (bar) bar.style.width = percent + '%';
+    if (text) text.textContent = percent + '%';
+  }
+
+  // 3. p5.js의 원본 로드 함수들을 백업하고, 호출을 가로채서(Hooking) 총 개수를 자동 등록
+  const originalLoadImage = window.loadImage;
+  window.loadImage = function(path, success, failure) {
+    totalAssets++;
+    return originalLoadImage.call(this, path, function(img) {
+      assetLoaded();
+      if (success) success(img);
+    }, function(err) {
+      assetLoaded();
+      if (failure) failure(err);
+    });
+  };
+
+  const originalLoadSound = window.loadSound;
+  if (originalLoadSound) {
+    window.loadSound = function(path, success, failure, whileLoading) {
+      totalAssets++;
+      return originalLoadSound.call(this, path, function(sound) {
+        assetLoaded();
+        if (success) success(sound);
+      }, function(err) {
+        assetLoaded();
+        if (failure) failure(err);
+      }, whileLoading);
+    };
+  }
+
+  // 4. 기존 에셋 로드 로직 실행 (서브 세션용 preload 함수들 포함하여 모두 추적 대상이 됨)
   masterBgm      = loadSound(SONG_LIST[0].file);
   lobbyBgm       = loadSound('assets/background.mp3'); // 🎶 배경음악 로드
   imgBassSSU     = loadImage('assets/bass_ssu.png');
@@ -259,9 +336,14 @@ function preload() {
     song.previewSound = loadSound('assets/' + song.previewFile);
   }
 
+  // 타 세션 파일들의 preload 실행
   if (typeof keyboardPreload === 'function') keyboardPreload();
   if (typeof bassPreload     === 'function') bassPreload();
   if (typeof drumPreload     === 'function') drumPreload();
+
+  // 5. [중요] 등록 절차가 끝났으므로 원본 함수 복구 (이후 게임 도중에 개별적으로 불리는 로드는 영향받지 않게 함)
+  window.loadImage = originalLoadImage;
+  if (originalLoadSound) window.loadSound = originalLoadSound;
 }
 
 function setup() {
