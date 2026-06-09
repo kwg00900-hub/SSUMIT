@@ -1,3 +1,9 @@
+// ⏸️ 일시정지 화면 이동 버튼 정의
+let pauseButtons = {
+  select: { x: 0, y: 0, w: 240, h: 45, label: "곡 선택창으로 돌아가기" },
+  start:  { x: 0, y: 0, w: 240, h: 45, label: "메인 화면으로 돌아가기" }
+};
+
 // 💬 제작진 소감문 관련 전역 변수
 let selectedCreditIdx = -1; // -1: 선택 안됨, 0: 김도경, 1: 김도현, 2: 방준혁
 const CREDITS_DATA = [
@@ -282,6 +288,9 @@ function windowResized() {
   updateUIElements();
 }
 
+// ============================================
+// 🔧 UI 요소 위치 갱신 (전체화면/화면 크기 변경 대응)
+// ============================================
 function updateUIElements() {
   uiButtons.start.x = width / 2 - 120;
   uiButtons.start.y = height / 2 + 40;
@@ -322,6 +331,12 @@ function updateUIElements() {
   for (let i = 0; i < SONG_LIST.length; i++) {
     songCardRects.push({ x: cardStartX + i * (cardW + cardGap), y: cardY, w: cardW, h: cardH });
   }
+
+  // ⏸️ 일시정지 이동 버튼 위치 세팅 (중앙 아래 정렬)
+  pauseButtons.select.x = width / 2 - 120;
+  pauseButtons.select.y = height * 0.68;
+  pauseButtons.start.x = width / 2 - 120;
+  pauseButtons.start.y = height * 0.75;
 }
 
 function initRestartButton() {
@@ -902,6 +917,9 @@ function drawStartScreen() {
   drawCheatButton();
 }
 
+// ============================================
+// ⏸️ 일시정지 화면 렌더링
+// ============================================
 function drawPausedScreen() {
   push(); fill(0, 0, 0, 180); rect(0, 0, width, height); pop();
   push(); textAlign(CENTER, CENTER); textFont('Helvetica'); textStyle(BOLD);
@@ -910,8 +928,12 @@ function drawPausedScreen() {
   text("⏸ PAUSED", width / 2, height * 0.35); pop();
   push(); textAlign(CENTER, CENTER); textSize(width * 0.022); textStyle(NORMAL); fill(200, 210, 230);
   text("게임이 일시정지되었습니다", width / 2, height * 0.48);
-  textSize(width * 0.018); fill(160, 170, 190); text("ESC 키를 다시 눌러 재개하세요", width / 2, height * 0.54);
+  textSize(width * 0.018); fill(160, 170, 190); text("P 키를 다시 눌러 재개하세요", width / 2, height * 0.54);
   textSize(width * 0.015); fill(100, 200, 255); text(`현재 배속: ${selectedSpeed}x`, width / 2, height * 0.62); pop();
+
+  // 버튼 디자인 시스템 연동출력
+  drawButton(pauseButtons.select);
+  drawButton(pauseButtons.start);
 }
 
 function drawButton(btn) {
@@ -958,7 +980,7 @@ function drawMasterOverlay() {
 }
 
 function drawPauseHint() {
-  push(); textAlign(RIGHT, TOP); textSize(11); fill(120, 130, 150); text("ESC: 일시정지", width - 30, 100); pop();
+  push(); textAlign(RIGHT, TOP); textSize(11); fill(120, 130, 150); text("P: 일시정지", width - 30, 100); pop();
 }
 
 function drawHelpPopup() {
@@ -1115,7 +1137,7 @@ function triggerGameOver() {
 }
 
 // ============================================
-// 🖱️ 입력 이벤트
+// 🖱️ 입력 이벤트 처리 (레이어 우회 클릭 완벽 차단 버전)
 // ============================================
 function mousePressed() {
   // 💬 [소감문 팝업 제어] 소감문이 열려있다면 화면 어디든 클릭 시 팝업을 닫음
@@ -1125,7 +1147,6 @@ function mousePressed() {
   }
 
   // 💬 결과화면/게임오버/시작화면 등에서 크레딧 클릭 여부를 먼저 검사
-  // (isGameOver 또는 isGameEnded 상태이거나 start 스크린일 때 크레딧이 노출되므로 이때 클릭 허용)
   if (isGameOver || isGameEnded || screenState === 'start') {
     for (let i = 0; i < creditClickRects.length; i++) {
       let cr = creditClickRects[i];
@@ -1164,19 +1185,51 @@ function mousePressed() {
     return; 
   }
 
+  // 📺 [공통] 전체화면 버튼 클릭 체크 (일시정지 상태에서도 작동 가능하도록 유지)
+  if(mouseX>uiButtons.full.x&&mouseX<uiButtons.full.x+uiButtons.full.w&&
+     mouseY>uiButtons.full.y&&mouseY<uiButtons.full.y+uiButtons.full.h){
+    fullscreen(!fullscreen()); return;
+  }
+
+  // ⏸️ [핵심 추가] 일시정지 화면 상태의 버튼 클릭 처리 및 레이어 뚫림 전면 차단
+  if (screenState === 'game' && isPaused) {
+    // 1. 곡 선택창으로 돌아가기 버튼 클릭 시
+    let btnSel = pauseButtons.select;
+    if (mouseX > btnSel.x && mouseX < btnSel.x + btnSel.w && 
+        mouseY > btnSel.y && mouseY < btnSel.y + btnSel.h) {
+      if (masterBgm) masterBgm.stop();
+      isPaused = false;
+      isCountingDown = false;
+      isSongPlaying = false;
+      screenState = 'select';
+      playLobbyBgm(); // 로비 BGM 복귀
+      return;
+    }
+
+    // 2. 메인 화면으로 돌아가기 버튼 클릭 시
+    let btnStart = pauseButtons.start;
+    if (mouseX > btnStart.x && mouseX < btnStart.x + btnStart.w && 
+        mouseY > btnStart.y && mouseY < btnStart.y + btnStart.h) {
+      if (masterBgm) masterBgm.stop();
+      isPaused = false;
+      isCountingDown = false;
+      isSongPlaying = false;
+      screenState = 'start';
+      playLobbyBgm(); // 로비 BGM 복귀
+      return;
+    }
+
+    // 일시정지 상태에서는 지정된 버튼 이외의 백그라운드 클릭 판정을 완전 차단합니다.
+    return;
+  }
+
   // 🛠️ [치트 버튼 토글 체크] 대기화면이나 곡 선택 화면에서 아이콘 클릭 시 토글 실행
   if (screenState === 'start' || screenState === 'select') {
     if (mouseX > cheatBtnRect.x && mouseX < cheatBtnRect.x + cheatBtnRect.w &&
         mouseY > cheatBtnRect.y && mouseY < cheatBtnRect.y + cheatBtnRect.h) {
       window.globalIsCheatMode = !window.globalIsCheatMode;
-      return; // 다른 UI 요소 클릭 판정 방지
+      return; 
     }
-  }
-
-  // 📺 [공통] 전체화면 버튼 클릭 체크
-  if(mouseX>uiButtons.full.x&&mouseX<uiButtons.full.x+uiButtons.full.w&&
-     mouseY>uiButtons.full.y&&mouseY<uiButtons.full.y+uiButtons.full.h){
-    fullscreen(!fullscreen()); return;
   }
 
   // 🏠 [시작 화면] 상태일 때의 버튼 체크
@@ -1217,22 +1270,19 @@ function mousePressed() {
       return;
     }
 
-    // 곡 카드 리스트 클릭 체크 (미리듣기 판정 영역 우선 가로채기 처리)
+    // 곡 카드 리스트 클릭 체크
     for(let i=0; i<songCardRects.length; i++){
       let r=songCardRects[i];
       
-      // 미리듣기 버튼 절대 좌표 계산
       let btnW = 28, btnH = 28;
       let btnX = r.x + r.w - btnW - 16;
       let btnY = r.y + 16;
       
-      // 1순위 판정: 미리듣기 아이콘 영역을 정밀하게 눌렀을 때
       if(mouseX > btnX && mouseX < btnX + btnW && mouseY > btnY && mouseY < btnY + btnH) {
         togglePreview(i);
         return;
       }
 
-      // 2순위 판정: 미리듣기 버튼 외에 카드 본체를 클릭했을 때
       if(mouseX>r.x&&mouseX<r.x+r.w&&mouseY>r.y&&mouseY<r.y+r.h){
         selectedSongIdx=i;
         applySpeed(selectedSpeed); 
@@ -1256,7 +1306,8 @@ function mousePressed() {
 }
 
 function keyPressed() {
-  if (keyCode === ESCAPE) { togglePause(); return false; }
+  // ⏸️ ESCAPE 대신 P 또는 p 키로 일시정지 토글
+  if (key === 'p' || key === 'P') { togglePause(); return false; }
   if (isCountingDown) return false;
   let currentSessionType = null;
   for (let i = 0; i < SESSION_ORDER.length; i++) {
